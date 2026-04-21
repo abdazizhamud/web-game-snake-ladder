@@ -279,8 +279,8 @@ class GameBoard {
                     // Use power-up to protect from snake
                     this.playerPowerUps[player.getName()]--;
                     this.playAudio("./audio/bonus.mp3");
-                    await this.showToast(`${player.getName()} used a Power-Up! Protected from the snake! 🛡️`);
-
+                    await new Promise(resolve => setTimeout(resolve, 300));
+                    alert(`${player.getName()} used a Power-Up! Protected from the snake! 🛡️`);
                     // Don't move, stay at current position
                 } else {
                     // Normal behavior - apply snake or ladder
@@ -484,37 +484,8 @@ class GameBoard {
         }
     }
 
-    showToast = (message, duration = 2000) => {
-        return new Promise((resolve) => {
-            let toast = document.getElementById("gameToast");
-            if (!toast) {
-                toast = document.createElement("div");
-                toast.id = "gameToast";
-                toast.style.cssText = `
-                    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                    background: rgba(0,0,0,0.85); color: white; padding: 18px 28px;
-                    border-radius: 12px; font-size: 1.1rem; font-weight: bold;
-                    z-index: 9999; text-align: center; pointer-events: none;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-                    transition: opacity 0.3s ease;
-                `;
-                document.body.appendChild(toast);
-            }
-            toast.textContent = message;
-            toast.style.opacity = "1";
-            toast.style.display = "block";
-            setTimeout(() => {
-                toast.style.opacity = "0";
-                setTimeout(() => {
-                    toast.style.display = "none";
-                    resolve();
-                }, 300);
-            }, duration);
-        });
-    }
-
     showPowerUpNotification = (playerName) => {
-        return this.showToast(`🎉 ${playerName} earned a Power-Up! Shield against snakes!`);
+        alert(`🎉 ${playerName} earned a Power-Up! Shield against snakes!`);
     }
 
     askQuiz = (playerName) => {

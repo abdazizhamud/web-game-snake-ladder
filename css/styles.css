@@ -357,3 +357,154 @@ button {
     }
 
 }
+
+/* --- QUIZ MODAL STYLES START --- */
+.quiz-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.quiz-modal.show {
+    display: flex;
+}
+
+.quiz-modal-content {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+}
+
+#quizQuestion {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.quiz-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 15px;
+}
+
+.quiz-btn-wrong, .quiz-btn-right {
+    padding: 12px 40px;
+    font-size: 18px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    color: white;
+    font-weight: bold;
+    transition: background-color 0.3s;
+}
+
+.quiz-btn-wrong {
+    background-color: #f44336;
+}
+
+.quiz-btn-wrong:hover {
+    background-color: #d32f2f;
+}
+
+.quiz-btn-right {
+    background-color: #4CAF50;
+}
+
+.quiz-btn-right:hover {
+    background-color: #45a049;
+}
+
+#quizBtn:hover {
+    background-color: #8b4513;
+}
+/* --- QUIZ MODAL STYLES END --- */
+
+/* --- SCOREBOARD STYLES START --- */
+.scoreboard {
+    position: fixed;
+    right: 20px;
+    top: 20px;
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    min-width: 200px;
+    z-index: 100;
+}
+
+.scoreboard h3 {
+    text-align: center;
+    margin-bottom: 15px;
+    color: #333;
+    font-size: 20px;
+    border-bottom: 2px solid #ddd;
+    padding-bottom: 10px;
+}
+
+.score-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 8px;
+    background-color: #f5f5f5;
+    border-radius: 5px;
+}
+
+.score-player {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.score-values {
+    display: flex;
+    gap: 15px;
+}
+
+.score-right {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.score-wrong {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.score-powerup {
+    color: #2196F3;
+    font-weight: bold;
+}
+
+.red-text {
+    color: #ff0000;
+}
+
+.green-text {
+    color: #00ff00;
+}
+
+.blue-text {
+    color: #0000ff;
+}
+
+.yellow-text {
+    color: #ffd700;
+}
+
+.computer-text {
+    color: #666;
+}
+/* --- SCOREBOARD STYLES END --- */

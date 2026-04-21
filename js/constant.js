@@ -1,4 +1,8 @@
 const GAME_BOARD_BG_01 = "./img/bg.jpg";
+const BOARD_SIZE = 500;
+const TILES_PER_ROW = 6;
+const TOTAL_TILES = TILES_PER_ROW * TILES_PER_ROW;
+const TILE_SIZE = BOARD_SIZE / TILES_PER_ROW;
 const SNAKES_AND_LADDERS_01 = {
     1: 38,
     4: 14,
@@ -18,7 +22,7 @@ const SNAKES_AND_LADDERS_01 = {
 };
 
 
-const GAME_BOARD_BG_02 = "./img/bg2.jpg";
+const GAME_BOARD_BG_02 = "./img/bg4.jpg";
 const SNAKES_AND_LADDERS_02 = {
     5: 58,
     14: 49,
@@ -30,3 +34,12 @@ const SNAKES_AND_LADDERS_02 = {
     91: 73,
     97: 61
 };
+
+const SNAKES_AND_LADDERS_03 = {
+    5:17,
+    11:25,
+    23:29,
+    15:3,
+    19:7,
+    35:21,
+}

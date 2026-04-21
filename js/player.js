@@ -55,41 +55,31 @@ class Player {
 
     setScale(scale) {
         this.scale = scale;
-        this.piece.style.width = `${parseInt(scale * 50)}px`;
-        this.piece.style.height = `${parseInt(scale * 50)}px`;
+        this.piece.style.width = `${Math.round(scale * TILE_SIZE)}px`;
+        this.piece.style.height = `${Math.round(scale * TILE_SIZE)}px`;
         console.log("UPDATED", scale);
         this.updatePosition();
     }
 
     updatePosition() {
-        let scaleSize = this.scale * 50;
-        if (this.position > 100) return;
+        let scaleSize = this.scale * TILE_SIZE;
+        if (this.position > TOTAL_TILES) return;
 
         // Check if the position indicator is 0
         if (this.position === 0) {
             // Set the vertical position of the player element
-            this.piece.style.bottom = "-95px";
+            this.piece.style.bottom = `${Math.round(-1.9 * scaleSize)}px`;
             // Set the horizontal position based on player type
             this.piece.style.left = `${this.index * scaleSize}px`;
         } else {
-            if (this.position % 10 !== 0) {
-                this.piece.style.bottom = parseInt(this.position / 10) * scaleSize + "px";
+            const rowIndex = Math.floor((this.position - 1) / TILES_PER_ROW);
+            const colIndex = (this.position - 1) % TILES_PER_ROW;
+            this.piece.style.bottom = `${Math.round(rowIndex * scaleSize)}px`;
+
+            if (rowIndex % 2 === 0) {
+                this.piece.style.left = `${Math.round(colIndex * scaleSize)}px`;
             } else {
-                this.piece.style.bottom = (parseInt(this.position / 10) - 1) * scaleSize + "px";
-            }
-
-            if ((this.position >= 1 && this.position < 10) || this.position >= 21 && this.position < 30 || this.position >= 41 && this.position < 50 || this.position >= 61 && this.position < 70 || this.position >= 81 && this.position < 90) {
-                this.piece.style.left = (parseInt(this.position % 10) * scaleSize - scaleSize) + "px";
-            } else {
-
-                if (parseInt(this.position % 20) === 0) {
-                    this.piece.style.left = "0px";
-                } else if (parseInt(this.position % 20) !== 0 && parseInt(this.position % 10) === 0) {
-                    this.piece.style.left = scaleSize * 9 + "px";
-                } else {
-
-                    this.piece.style.left = (scaleSize * 10 - parseInt(this.position % 10) * scaleSize) + "px";
-                }
+                this.piece.style.left = `${Math.round((TILES_PER_ROW - 1 - colIndex) * scaleSize)}px`;
             }
 
         }

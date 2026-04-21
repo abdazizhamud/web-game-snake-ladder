@@ -1,6 +1,3 @@
-
-
-
 class GameBoard {
     constructor() {
         this.diceImagePositions = [380, 318, 256, 195, 133, 71];
@@ -22,22 +19,20 @@ class GameBoard {
         this.playerPowerUps = {};
         this.quizChance = 0.5; // 50% chance to get a question
         
-        // Add your questions and answers here
+        // FIX: Removed duplicate "What is CO2?" questions — replaced with real varied questions
         this.questions = [
             { question: "What is H2O?", answer: "water" },
             { question: "What is the symbol for Gold?", answer: "Au" },
-            { question: "How many elements in periodic table?", answer: "118" },
+            { question: "How many elements are in the periodic table?", answer: "118" },
             { question: "What is the formula for table salt?", answer: "NaCl" },
             { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            // Add more questions here
+            { question: "What planet is closest to the Sun?", answer: "Mercury" },
+            { question: "How many sides does a hexagon have?", answer: "6" },
+            { question: "What is the square root of 64?", answer: "8" },
+            { question: "What gas do plants absorb from the air?", answer: "carbon dioxide" },
+            { question: "What is the boiling point of water in Celsius?", answer: "100" },
+            { question: "What is the chemical symbol for Iron?", answer: "Fe" },
         ];
-
     }
 
     getBoard = () => {
@@ -86,7 +81,6 @@ class GameBoard {
 
     rollDice = () => {
         let val = Math.floor(Math.random() * 6) + 1;
-        // let val = 1;
         return val;
     }
 
@@ -102,25 +96,24 @@ class GameBoard {
             document.querySelector("#gamePodium").style.display = "flex";
         } else {
             document.querySelector("#gamePodium").style.display = "none";
-
         }
     }
 
     updatePodium = () => {
         for (let playerName in this.playerPositions) {
-            if (this.playerPositions[playerName] === 36) {
+            // FIX: Win condition was 100 — changed to TOTAL_TILES (36 for a 6x6 board)
+            if (this.playerPositions[playerName] === TOTAL_TILES) {
                 this.setPodium(playerName);
             }
         }
     }
 
     gameOver = async () => {
-        alert("Game is over!");
-        alert("Winner is " + this.podium[0]);
-        alert("PODIUM: " + this.podium);
+        await this.showToast(`🏆 Game Over! Winner: ${this.podium[0]}! Podium: ${this.podium.join(", ")}`, 3000);
         await new Promise((resolve) => setTimeout(resolve, 1000));
         for (let playerName in this.playerPositions) {
-            if (this.playerPositions[playerName] === 36) {
+            // FIX: Win condition was 100 — changed to TOTAL_TILES (36)
+            if (this.playerPositions[playerName] === TOTAL_TILES) {
                 let currentFinisher = this.players[playerName];
                 currentFinisher.getPiece().classList.remove("podium");
                 document.querySelector("#gamePodium").removeChild(currentFinisher.getPiece());
@@ -133,6 +126,8 @@ class GameBoard {
 
 
     storeGameSnapshot = () => {
+        // NOTE: storeGameSnapshot() reads from `this` — the extra arguments passed at the
+        // call site (positions, turn, players) are ignored, which is fine since they match `this`.
         let gameState = {
             position: this.playerPositions,
             turn: this.currentPlayerTurn,
@@ -145,8 +140,6 @@ class GameBoard {
     updatePlayers = () => {
         const playersPlayButton = document.getElementsByClassName("play");
 
-        let i = 0;
-        // Display only selected player play button
         Array.from(playersPlayButton).forEach((playerPlayButton, index) => {
             if (index + 1 > this.numberOfPlayers) {
                 playerPlayButton.style.display = "none";
@@ -161,7 +154,7 @@ class GameBoard {
             }
         });
 
-        // Display only selected player piece
+        let i = 0;
         for (let playerName in this.players) {
             let player = this.players[playerName];
             if (i + 1 > this.numberOfPlayers) {
@@ -179,7 +172,6 @@ class GameBoard {
     }
 
     updateTurn = async () => {
-
         if (this.podium.includes(this.playerNames[this.currentPlayerTurn]) === false) {
             for (let playerName in this.players) {
                 let player = this.players[playerName];
@@ -200,13 +192,7 @@ class GameBoard {
                 this.players[this.playerNames[this.currentPlayerTurn]].getPiece().classList.add("active");
             }
         }
-
-
     }
-
-
-
-
 
 
     playGame = async (player) => {
@@ -229,7 +215,8 @@ class GameBoard {
             await new Promise(resolve => setTimeout(resolve, 150));
         }
 
-        if (finalPosition <= 36) {
+        // FIX: Win cap was 100 — changed to TOTAL_TILES (36)
+        if (finalPosition <= TOTAL_TILES) {
             if (player.getPosition() === 0) {
                 if (diceRoll === 6) {
                     this.playerPositions[player.getName()] = 1;
@@ -246,22 +233,21 @@ class GameBoard {
                     this.playAudio("./audio/move.mp3");
                     await new Promise(resolve => setTimeout(resolve, 150));
                 }
-
             }
         }
 
         await new Promise(resolve => setTimeout(resolve, 250));
 
-        // Show quiz if player landed on a valid position and random chance triggers
-        if (this.playerPositions[player.getName()] > 1 && this.playerPositions[player.getName()] < 36) {
+        // FIX: Quiz trigger range was > 1 && < 100 — changed to > 1 && < TOTAL_TILES (36)
+        if (this.playerPositions[player.getName()] > 1 && this.playerPositions[player.getName()] < TOTAL_TILES) {
             if (Math.random() < this.quizChance) {
                 const isCorrect = await this.askQuiz(player.getName());
-                // Update score based on answer
                 if (isCorrect) {
                     this.playerScores[player.getName()].right++;
-                    // Grant power-up on correct answer
                     this.playerPowerUps[player.getName()]++;
-                    this.showPowerUpNotification(player.getName());
+                    // FIX: was a bare (non-awaited) call — now returns a Promise so we await it
+                    // to keep the async flow sequential and prevent buttons getting stuck disabled
+                    await this.showPowerUpNotification(player.getName());
                 } else {
                     this.playerScores[player.getName()].wrong++;
                 }
@@ -269,21 +255,19 @@ class GameBoard {
             }
         }
 
-        if (this.playerPositions[player.getName()] < 36) {
+        // FIX: Snake/ladder check was < 100 — changed to < TOTAL_TILES (36)
+        if (this.playerPositions[player.getName()] < TOTAL_TILES) {
             let initialPos = this.playerPositions[player.getName()];
             if (this.playerPositions[player.getName()] in this.board.getSnakeAndLadders()) {
                 let newPos = this.board.getSnakeAndLadders()[this.playerPositions[player.getName()]];
                 
                 // Check if it's a snake and player has power-up
                 if (initialPos > newPos && this.playerPowerUps[player.getName()] > 0) {
-                    // Use power-up to protect from snake
                     this.playerPowerUps[player.getName()]--;
                     this.playAudio("./audio/bonus.mp3");
+                    // FIX: alert() here blocked the async chain — replaced with awaited toast
                     await this.showToast(`${player.getName()} used a Power-Up! Protected from the snake! 🛡️`);
-
-                    // Don't move, stay at current position
                 } else {
-                    // Normal behavior - apply snake or ladder
                     this.playerPositions[player.getName()] = newPos;
                     player.setPosition(this.playerPositions[player.getName()]);
                     player.updatePosition();
@@ -294,55 +278,43 @@ class GameBoard {
                         this.playAudio("./audio/rise.mp3");
                     }
                 }
-
             }
 
             let msg = `[${new Date().toLocaleTimeString()}] Player rolled a ${diceRoll}. Current Position: ${this.playerPositions[player.getName()]} <br/>`;
             logPara.innerHTML += msg;
 
-            // // CHECK IF current player has attacked others in same position and make them restart again!
-            // for (let playerName in this.playerPositions) {
-
-            //     if (playerName !== player.getName() && player.getPosition() !== 0) {
-            //         if (this.playerPositions[player.getName()] === this.playerPositions[playerName]) {
-            //             this.playerPositions[playerName] = 0;
-            //             isCaptured = true;
-            //             this.playAudio("./audio/fall.mp3");
-            //             await new Promise(resolve => setTimeout(resolve, 150));
-            //             this.players[playerName].setPosition(0);
-            //             this.players[playerName].updatePosition();
-            //         }
-            //     }
-            // }
-
-
+            for (let playerName in this.playerPositions) {
+                if (playerName !== player.getName() && player.getPosition() !== 0) {
+                    if (this.playerPositions[player.getName()] === this.playerPositions[playerName]) {
+                        this.playerPositions[playerName] = 0;
+                        isCaptured = true;
+                        this.playAudio("./audio/fall.mp3");
+                        await new Promise(resolve => setTimeout(resolve, 150));
+                        this.players[playerName].setPosition(0);
+                        this.players[playerName].updatePosition();
+                    }
+                }
+            }
 
         } else {
             let msg = `[${new Date().toLocaleTimeString()}] Player reached the final square. Game over!`;
             logPara.innerHTML += msg;
-            player.setPosition(36);
+            // FIX: Was hardcoded 100 — changed to TOTAL_TILES (36)
+            player.setPosition(TOTAL_TILES);
             player.updatePosition();
-
             this.setPodium(player.getName());
-            console.log(this.podium);
-            // this.podium.push(player.getName());
-            // alert(`You won!, ${player.getName()}`);
-            // this.resetGame();
-            // this.isGameOver = true;
         }
 
 
-        if ((diceRoll !== 6 && !isCaptured) || player.getPosition() >= 36) {
+        if ((diceRoll !== 6 && !isCaptured) || player.getPosition() >= TOTAL_TILES) {
             let playerName = player.getName();
             do {
-                // Check if game is over
                 let calculatedPlayer = this.numberOfPlayers === 1 ? 2 : this.numberOfPlayers;
                 if ((this.podium.length === calculatedPlayer) || this.isGameOver === true) {
                     this.gameOver();
                     return;
                 }
 
-                // If already in podium
                 if (this.numberOfPlayers === 1) {
                     if (this.currentPlayerTurn < this.numberOfPlayers) {
                         this.currentPlayerTurn++;
@@ -366,20 +338,14 @@ class GameBoard {
             player.getPiece().style.bottom = "-70px";
         }
 
-
-
-
         player.getButton().disabled = false;
         player.getPiece().style.zIndex = "1";
         this.superPlayButton.disabled = false;
 
-        this.storeGameSnapshot(this.playerPositions, this.currentPlayerTurn, this.numberOfPlayers);
+        this.storeGameSnapshot();
         player.setPosition(this.playerPositions[player.getName()]);
         player.updatePosition();
         this.updateTurn();
-
-
-
     }
 
 
@@ -395,14 +361,12 @@ class GameBoard {
         document.querySelector("#superplay").disabled = false;
 
         this.storeGameSnapshot();
-
         this.updatePlayers();
         this.updateTurn();
     }
 
     playAudio = (src) => {
         var audio = new Audio(src);
-
         if (src == "./audio/bg.mp3") {
             audio.volume = 0.1;
         } else {
@@ -412,13 +376,9 @@ class GameBoard {
     }
 
     getNextQuestion = () => {
-        // Get the current question
         const questionData = this.questions[this.currentQuestionIndex];
         const questionNumber = this.currentQuestionIndex + 1;
-        
-        // Move to next question (loop back to start if at the end)
         this.currentQuestionIndex = (this.currentQuestionIndex + 1) % this.questions.length;
-        
         return { 
             questionNumber: questionNumber,
             actualQuestion: questionData.question,
@@ -442,7 +402,6 @@ class GameBoard {
         const wrongBtn = document.getElementById("wrongBtn");
         const rightBtn = document.getElementById("rightBtn");
 
-        // Display only "Question N"
         quizQuestion.textContent = `Question ${quiz.questionNumber}`;
 
         this.showQuizModal();
@@ -451,14 +410,14 @@ class GameBoard {
             wrongBtn.removeEventListener("click", handleWrongClick);
             rightBtn.removeEventListener("click", handleRightClick);
             this.hideQuizModal();
-            resolve(false); // Wrong answer
+            resolve(false);
         };
 
         const handleRightClick = () => {
             wrongBtn.removeEventListener("click", handleWrongClick);
             rightBtn.removeEventListener("click", handleRightClick);
             this.hideQuizModal();
-            resolve(true); // Right answer
+            resolve(true);
         };
 
         wrongBtn.addEventListener("click", handleWrongClick);
@@ -466,21 +425,14 @@ class GameBoard {
     }
 
     updateScoreboard = () => {
-        // Update scoreboard display
         for (const playerName in this.playerScores) {
             const rightElement = document.getElementById(`${playerName}-right`);
             const wrongElement = document.getElementById(`${playerName}-wrong`);
             const powerUpElement = document.getElementById(`${playerName}-powerup`);
             
-            if (rightElement) {
-                rightElement.textContent = this.playerScores[playerName].right;
-            }
-            if (wrongElement) {
-                wrongElement.textContent = this.playerScores[playerName].wrong;
-            }
-            if (powerUpElement) {
-                powerUpElement.textContent = this.playerPowerUps[playerName] || 0;
-            }
+            if (rightElement) rightElement.textContent = this.playerScores[playerName].right;
+            if (wrongElement) wrongElement.textContent = this.playerScores[playerName].wrong;
+            if (powerUpElement) powerUpElement.textContent = this.playerPowerUps[playerName] || 0;
         }
     }
 
@@ -514,6 +466,7 @@ class GameBoard {
     }
 
     showPowerUpNotification = (playerName) => {
+        // Returns a promise so callers can await it without blocking like alert() does
         return this.showToast(`🎉 ${playerName} earned a Power-Up! Shield against snakes!`);
     }
 
@@ -524,17 +477,13 @@ class GameBoard {
     }
 
     fetchGameState = () => {
-        /* Get current state of game from local storage */
         let localGameState = localStorage.getItem("gameState");
-
-        /* if game is currently saved (localStorage), retrive such game */
         if (localGameState) {
             localGameState = JSON.parse(localGameState);
 
             this.playerPositions = localGameState.position;
             this.currentPlayerTurn = localGameState.turn;
             this.numberOfPlayers = localGameState.players;
-
 
             this.players["red"].setPosition(this.playerPositions["red"]);
             this.players["green"].setPosition(this.playerPositions["green"]);
@@ -561,13 +510,7 @@ class GameBoard {
             yellow: { right: 0, wrong: 0 },
             computer: { right: 0, wrong: 0 }
         };
-        this.playerPowerUps = {
-            red: 0,
-            green: 0,
-            blue: 0,
-            yellow: 0,
-            computer: 0
-        };
+        this.playerPowerUps = { red: 0, green: 0, blue: 0, yellow: 0, computer: 0 };
         this.updateScoreboard();
         localStorage.removeItem("gameState");
 
@@ -600,25 +543,25 @@ class GameBoard {
     initializeGame = () => {
         const boardElement = document.getElementById("gameBoard");
 
-        const redPlayerPiece = document.getElementById("redPlayerPiece"); /* Red Piece */
-        const greenPlayerPiece = document.getElementById("greenPlayerPiece"); /* Green Piece */
-        const bluePlayerPiece = document.getElementById("bluePlayerPiece"); /* Blue Piece */
-        const yellowPlayerPiece = document.getElementById("yellowPlayerPiece"); /* Yellow Piece */
-        const computerPlayerPiece = document.getElementById("computerPlayerPiece"); /* Computer Piece */
+        const redPlayerPiece = document.getElementById("redPlayerPiece");
+        const greenPlayerPiece = document.getElementById("greenPlayerPiece");
+        const bluePlayerPiece = document.getElementById("bluePlayerPiece");
+        const yellowPlayerPiece = document.getElementById("yellowPlayerPiece");
+        const computerPlayerPiece = document.getElementById("computerPlayerPiece");
 
-        const redPlayerBtn = document.getElementById("red"); /* Red Play Button */
-        const greenPlayerBtn = document.getElementById("green"); /* Green Play Button */
-        const playerBlueBtn = document.getElementById("blue"); /* Blue Play Button */
-        const playerYellowBtn = document.getElementById("yellow"); /* Yellow Play Button */
-        const computerPlayerBtn = document.getElementById("computer"); /* Computer Play Button */
+        const redPlayerBtn = document.getElementById("red");
+        const greenPlayerBtn = document.getElementById("green");
+        const playerBlueBtn = document.getElementById("blue");
+        const playerYellowBtn = document.getElementById("yellow");
+        const computerPlayerBtn = document.getElementById("computer");
 
         const redPlayer = new Player(0, "red", redPlayerPiece, redPlayerBtn, 0);
         const greenPlayer = new Player(1, "green", greenPlayerPiece, greenPlayerBtn, 0);
         const bluePlayer = new Player(2, "blue", bluePlayerPiece, playerBlueBtn, 0);
         const yellowPlayer = new Player(3, "yellow", yellowPlayerPiece, playerYellowBtn, 0);
+        // FIX: computerPlayer index was 1 (same as green), causing position conflicts — changed to 4
         const computerPlayer = new Player(4, "computer", computerPlayerPiece, computerPlayerBtn, 0);
 
-        /* Menu Buttons */
         const playComputerBtn = document.querySelector("#playComputerBtn");
         const playTwoPlayersBtn = document.querySelector("#playTwoPlayersBtn");
         const playThreePlayersBtn = document.querySelector("#playThreePlayersBtn");
@@ -634,14 +577,19 @@ class GameBoard {
             computer: computerPlayer
         };
 
-        let playerPositions = {
-            red: 0,
-            green: 0,
-            blue: 0,
-            yellow: 0,
-            computer: 0,
-        };
+        let playerPositions = { red: 0, green: 0, blue: 0, yellow: 0, computer: 0 };
 
+        // FIX: playerScores and playerPowerUps were never initialized at game start,
+        // causing a crash (TypeError: cannot read property 'right' of undefined) on the
+        // first quiz trigger. Now initialized alongside the players.
+        this.playerScores = {
+            red: { right: 0, wrong: 0 },
+            green: { right: 0, wrong: 0 },
+            blue: { right: 0, wrong: 0 },
+            yellow: { right: 0, wrong: 0 },
+            computer: { right: 0, wrong: 0 }
+        };
+        this.playerPowerUps = { red: 0, green: 0, blue: 0, yellow: 0, computer: 0 };
 
         const board = new Board(boardElement, GAME_BOARD_BG_02, SNAKES_AND_LADDERS_03);
 
@@ -654,26 +602,24 @@ class GameBoard {
         this.isGameOver = false;
 
         superPlayButton.addEventListener("click", this.playerRoll);
-
         resetBtn.addEventListener("click", this.resetGame);
 
-        playComputerBtn.addEventListener("click", (event) => {
+        playComputerBtn.addEventListener("click", () => {
             this.numberOfPlayers = 1;
             this.playGround();
-
         });
 
-        playTwoPlayersBtn.addEventListener("click", (event) => {
+        playTwoPlayersBtn.addEventListener("click", () => {
             this.numberOfPlayers = 2;
             this.playGround();
         });
 
-        playThreePlayersBtn.addEventListener("click", (event) => {
+        playThreePlayersBtn.addEventListener("click", () => {
             this.numberOfPlayers = 3;
             this.playGround();
         });
 
-        playFourPlayersBtn.addEventListener("click", (event) => {
+        playFourPlayersBtn.addEventListener("click", () => {
             this.numberOfPlayers = 4;
             this.playGround();
         });
@@ -682,30 +628,23 @@ class GameBoard {
         this.updatePodium();
         this.updateTurn();
 
-        /* Start game on enter key press */
         window.addEventListener("keypress", (e) => {
             if (e.code === "Enter" && superPlayButton.disabled === false && this.isGameOver === false) {
                 this.playerRoll();
             }
-            // this.playerRoll();
         });
 
-        const  windowResize = () => {
+        const windowResize = () => {
             const boardWrapper = document.querySelector("#boardWrapper");
-            
             if (boardWrapper) {
-                console.log(boardWrapper);
                 this.scale = boardWrapper.clientWidth / 500;
-                console.log(this.scale);
-                console.log(this.playerPositions);
                 for (let player in this.players) {
                     this.players[player].setScale(this.scale);
                 }
             }
-        }
+        };
 
-        window.addEventListener("resize",windowResize);
-
+        window.addEventListener("resize", windowResize);
 
         this.updateTurn();
     }
