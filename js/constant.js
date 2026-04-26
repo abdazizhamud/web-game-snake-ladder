@@ -36,7 +36,7 @@ const SNAKES_AND_LADDERS_02 = {
 };
 
 const SNAKES_AND_LADDERS_03 = {
-    5:17,
+    5:20,
     11:25,
     23:29,
     15:3,

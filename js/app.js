@@ -204,11 +204,6 @@ class GameBoard {
 
     }
 
-
-
-
-
-
     playGame = async (player) => {
         player.getButton().disabled = true;
         player.getPiece().style.zIndex = "99";
