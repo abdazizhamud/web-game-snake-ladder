@@ -13,30 +13,13 @@ class GameBoard {
         this.isGameOver = true;
         this.podium = [];
         this.scale = 1;
-        this.currentQuestionIndex = 0;
+        this.selectedPlayerName = null;
+        this.diceButtons = [];
+        this.undoButton = null;
+        this.moveHistory = [];
         
         // Score tracking for each player
         this.playerScores = {};
-        
-        // Power-up tracking for each player
-        this.playerPowerUps = {};
-        this.quizChance = 0.5; // 50% chance to get a question
-        
-        // Add your questions and answers here
-        this.questions = [
-            { question: "What is H2O?", answer: "water" },
-            { question: "What is the symbol for Gold?", answer: "Au" },
-            { question: "How many elements in periodic table?", answer: "118" },
-            { question: "What is the formula for table salt?", answer: "NaCl" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            { question: "What is CO2?", answer: "carbon dioxide" },
-            // Add more questions here
-        ];
 
     }
 
@@ -176,6 +159,77 @@ class GameBoard {
             }
             i++;
         }
+
+        this.updatePieceStacking();
+    }
+
+    getStackLayoutNames = () => {
+        const activePlayers = this.getActivePlayerNames();
+        return activePlayers.filter((playerName) => {
+            const player = this.players[playerName];
+            return player && player.getPiece().style.display !== "none" && !this.podium.includes(playerName);
+        });
+    }
+
+    getStackOffset = (stackIndex, stackCount, spacing) => {
+        if (stackCount <= 1) {
+            return { x: 0, y: 0 };
+        }
+
+        // Keep pieces readable when multiple players occupy one tile.
+        if (stackCount === 2) {
+            return {
+                x: stackIndex === 0 ? -spacing : spacing,
+                y: 0
+            };
+        }
+
+        if (stackCount === 3) {
+            return {
+                x: (stackIndex - 1) * spacing,
+                y: 0
+            };
+        }
+
+        const row = Math.floor(stackIndex / 2);
+        const col = stackIndex % 2;
+        return {
+            x: col === 0 ? -spacing : spacing,
+            y: row === 0 ? -spacing / 2 : spacing / 2
+        };
+    }
+
+    updatePieceStacking = () => {
+        const layoutNames = this.getStackLayoutNames();
+        const positionBuckets = {};
+
+        layoutNames.forEach((playerName) => {
+            this.players[playerName].setPosition(this.playerPositions[playerName]);
+            this.players[playerName].updatePosition();
+        });
+
+        layoutNames.forEach((playerName) => {
+            const position = this.playerPositions[playerName];
+            if (!positionBuckets[position]) {
+                positionBuckets[position] = [];
+            }
+
+            positionBuckets[position].push(playerName);
+        });
+
+        const spacing = Math.max(8, Math.round(this.scale * TILE_SIZE * 0.25));
+
+        Object.values(positionBuckets).forEach((bucket) => {
+            bucket.forEach((playerName, index) => {
+                const piece = this.players[playerName].getPiece();
+                const baseLeft = Number.parseInt(piece.style.left || "0", 10);
+                const baseBottom = Number.parseInt(piece.style.bottom || "0", 10);
+                const offset = this.getStackOffset(index, bucket.length, spacing);
+
+                piece.style.left = `${baseLeft + offset.x}px`;
+                piece.style.bottom = `${baseBottom + offset.y}px`;
+            });
+        });
     }
 
     updateTurn = async () => {
@@ -194,7 +248,6 @@ class GameBoard {
             if (this.numberOfPlayers === 1 && this.currentPlayerTurn === 1) {
                 this.players["computer"].getButton().disabled = false;
                 this.players["computer"].getPiece().classList.add("active");
-                this.playGame(this.players["computer"]);
             } else {
                 this.players[this.playerNames[this.currentPlayerTurn]].getButton().disabled = false;
                 this.players[this.playerNames[this.currentPlayerTurn]].getPiece().classList.add("active");
@@ -204,20 +257,22 @@ class GameBoard {
 
     }
 
-    playGame = async (player) => {
+    playGame = async (player, forcedDiceRoll = null) => {
         player.getButton().disabled = true;
         player.getPiece().style.zIndex = "99";
-        this.superPlayButton.disabled = true;
+        this.setDiceButtonsDisabled(true);
+        this.setUndoDisabled(true);
         let logPara = document.getElementById("log");
-        let isCaptured = false;
+        const playerName = player.getName();
+        const previousPosition = this.playerPositions[playerName];
 
         // Roll the dice
         this.playAudio("./audio/roll.mp3");
-        let diceRoll = this.rollDice();
+        let diceRoll = forcedDiceRoll ?? this.rollDice();
         document.getElementById("dice").style.backgroundPositionX = `${this.diceImagePositions[diceRoll - 1]}px`;
 
         await new Promise(resolve => setTimeout(resolve, 500));
-        let finalPosition = this.playerPositions[player.getName()] + diceRoll;
+        let finalPosition = this.playerPositions[playerName] + diceRoll;
 
         if (diceRoll === 6) {
             this.playAudio("./audio/bonus.mp3");
@@ -227,17 +282,19 @@ class GameBoard {
         if (finalPosition <= 36) {
             if (player.getPosition() === 0) {
                 if (diceRoll === 6) {
-                    this.playerPositions[player.getName()] = 1;
+                    this.playerPositions[playerName] = 1;
                     player.setPosition(1);
                     player.updatePosition();
+                    this.updatePieceStacking();
                     this.playAudio("./audio/move.mp3");
                     await new Promise(resolve => setTimeout(resolve, 150));
                 }
             } else {
-                for (let i = this.playerPositions[player.getName()]; i <= finalPosition; i++) {
-                    this.playerPositions[player.getName()] = i;
-                    player.setPosition(this.playerPositions[player.getName()]);
+                for (let i = this.playerPositions[playerName]; i <= finalPosition; i++) {
+                    this.playerPositions[playerName] = i;
+                    player.setPosition(this.playerPositions[playerName]);
                     player.updatePosition();
+                    this.updatePieceStacking();
                     this.playAudio("./audio/move.mp3");
                     await new Promise(resolve => setTimeout(resolve, 150));
                 }
@@ -247,52 +304,25 @@ class GameBoard {
 
         await new Promise(resolve => setTimeout(resolve, 250));
 
-        // Show quiz if player landed on a valid position and random chance triggers
-        if (this.playerPositions[player.getName()] > 1 && this.playerPositions[player.getName()] < 36) {
-            if (Math.random() < this.quizChance) {
-                const isCorrect = await this.askQuiz(player.getName());
-                // Update score based on answer
-                if (isCorrect) {
-                    this.playerScores[player.getName()].right++;
-                    // Grant power-up on correct answer
-                    this.playerPowerUps[player.getName()]++;
-                    this.showPowerUpNotification(player.getName());
+        if (this.playerPositions[playerName] < 36) {
+            let initialPos = this.playerPositions[playerName];
+            if (this.playerPositions[playerName] in this.board.getSnakeAndLadders()) {
+                let newPos = this.board.getSnakeAndLadders()[this.playerPositions[playerName]];
+
+                this.playerPositions[playerName] = newPos;
+                player.setPosition(this.playerPositions[playerName]);
+                player.updatePosition();
+                this.updatePieceStacking();
+
+                if (initialPos > this.playerPositions[playerName]) {
+                    this.playAudio("./audio/fall.mp3");
                 } else {
-                    this.playerScores[player.getName()].wrong++;
-                }
-                this.updateScoreboard();
-            }
-        }
-
-        if (this.playerPositions[player.getName()] < 36) {
-            let initialPos = this.playerPositions[player.getName()];
-            if (this.playerPositions[player.getName()] in this.board.getSnakeAndLadders()) {
-                let newPos = this.board.getSnakeAndLadders()[this.playerPositions[player.getName()]];
-                
-                // Check if it's a snake and player has power-up
-                if (initialPos > newPos && this.playerPowerUps[player.getName()] > 0) {
-                    // Use power-up to protect from snake
-                    this.playerPowerUps[player.getName()]--;
-                    this.playAudio("./audio/bonus.mp3");
-                    await this.showToast(`${player.getName()} used a Power-Up! Protected from the snake! 🛡️`);
-
-                    // Don't move, stay at current position
-                } else {
-                    // Normal behavior - apply snake or ladder
-                    this.playerPositions[player.getName()] = newPos;
-                    player.setPosition(this.playerPositions[player.getName()]);
-                    player.updatePosition();
-
-                    if (initialPos > this.playerPositions[player.getName()]) {
-                        this.playAudio("./audio/fall.mp3");
-                    } else {
-                        this.playAudio("./audio/rise.mp3");
-                    }
+                    this.playAudio("./audio/rise.mp3");
                 }
 
             }
 
-            let msg = `[${new Date().toLocaleTimeString()}] Player rolled a ${diceRoll}. Current Position: ${this.playerPositions[player.getName()]} <br/>`;
+            let msg = `[${new Date().toLocaleTimeString()}] Player rolled a ${diceRoll}. Current Position: ${this.playerPositions[playerName]} <br/>`;
             logPara.innerHTML += msg;
 
             // // CHECK IF current player has attacked others in same position and make them restart again!
@@ -317,8 +347,9 @@ class GameBoard {
             logPara.innerHTML += msg;
             player.setPosition(36);
             player.updatePosition();
+            this.updatePieceStacking();
 
-            this.setPodium(player.getName());
+            this.setPodium(playerName);
             console.log(this.podium);
             // this.podium.push(player.getName());
             // alert(`You won!, ${player.getName()}`);
@@ -326,38 +357,18 @@ class GameBoard {
             // this.isGameOver = true;
         }
 
+        const scoreGain = Math.max(0, this.playerPositions[playerName] - previousPosition);
+        this.playerScores[playerName].score += scoreGain;
+        this.updateScoreboard();
 
-        if ((diceRoll !== 6 && !isCaptured) || player.getPosition() >= 36) {
-            let playerName = player.getName();
-            do {
-                // Check if game is over
-                let calculatedPlayer = this.numberOfPlayers === 1 ? 2 : this.numberOfPlayers;
-                if ((this.podium.length === calculatedPlayer) || this.isGameOver === true) {
-                    this.gameOver();
-                    return;
-                }
-
-                // If already in podium
-                if (this.numberOfPlayers === 1) {
-                    if (this.currentPlayerTurn < this.numberOfPlayers) {
-                        this.currentPlayerTurn++;
-                    } else {
-                        this.currentPlayerTurn = 0;
-                    }
-                } else {
-                    if (this.currentPlayerTurn < (this.numberOfPlayers - 1)) {
-                        this.currentPlayerTurn++;
-                    } else {
-                        this.currentPlayerTurn = 0;
-                    }
-                }
-
-                playerName = this.playerNames[this.numberOfPlayers === 1 && this.currentPlayerTurn === 1 ? 4 : this.currentPlayerTurn];
-            } while (this.podium.includes(playerName));
+        let calculatedPlayer = this.numberOfPlayers === 1 ? 2 : this.numberOfPlayers;
+        if ((this.podium.length === calculatedPlayer) || this.isGameOver === true) {
+            this.gameOver();
+            return;
         }
 
 
-        if (this.playerPositions[player.getName()] == 0) {
+        if (this.playerPositions[playerName] == 0) {
             player.getPiece().style.bottom = "-70px";
         }
 
@@ -366,11 +377,13 @@ class GameBoard {
 
         player.getButton().disabled = false;
         player.getPiece().style.zIndex = "1";
-        this.superPlayButton.disabled = false;
+        this.setDiceButtonsDisabled(false);
+        this.setUndoDisabled(this.moveHistory.length === 0);
 
         this.storeGameSnapshot(this.playerPositions, this.currentPlayerTurn, this.numberOfPlayers);
-        player.setPosition(this.playerPositions[player.getName()]);
+        player.setPosition(this.playerPositions[playerName]);
         player.updatePosition();
+        this.updatePieceStacking();
         this.updateTurn();
 
 
@@ -381,13 +394,16 @@ class GameBoard {
     showMenu = () => {
         document.querySelector("#menu").style.display = "block";
         document.querySelector("#playground").style.display = "none";
-        document.querySelector("#superplay").disabled = true;
+        this.setDiceButtonsDisabled(true);
     }
 
     playGround = () => {
         document.querySelector("#menu").style.display = "none";
         document.querySelector("#playground").style.display = "block";
-        document.querySelector("#superplay").disabled = false;
+        this.setDiceButtonsDisabled(false);
+        this.selectedPlayerName = null;
+        this.moveHistory = [];
+        this.setUndoDisabled(true);
 
         this.storeGameSnapshot();
 
@@ -406,60 +422,6 @@ class GameBoard {
         audio.play();
     }
 
-    getNextQuestion = () => {
-        // Get the current question
-        const questionData = this.questions[this.currentQuestionIndex];
-        const questionNumber = this.currentQuestionIndex + 1;
-        
-        // Move to next question (loop back to start if at the end)
-        this.currentQuestionIndex = (this.currentQuestionIndex + 1) % this.questions.length;
-        
-        return { 
-            questionNumber: questionNumber,
-            actualQuestion: questionData.question,
-            answer: questionData.answer 
-        };
-    }
-
-    showQuizModal = () => {
-        const modal = document.getElementById("quizModal");
-        modal.classList.add("show");
-    }
-
-    hideQuizModal = () => {
-        const modal = document.getElementById("quizModal");
-        modal.classList.remove("show");
-    }
-
-    displayQuiz = (resolve) => {
-        const quiz = this.getNextQuestion();
-        const quizQuestion = document.getElementById("quizQuestion");
-        const wrongBtn = document.getElementById("wrongBtn");
-        const rightBtn = document.getElementById("rightBtn");
-
-        // Display only "Question N"
-        quizQuestion.textContent = `Question ${quiz.questionNumber}`;
-
-        this.showQuizModal();
-
-        const handleWrongClick = () => {
-            wrongBtn.removeEventListener("click", handleWrongClick);
-            rightBtn.removeEventListener("click", handleRightClick);
-            this.hideQuizModal();
-            resolve(false); // Wrong answer
-        };
-
-        const handleRightClick = () => {
-            wrongBtn.removeEventListener("click", handleWrongClick);
-            rightBtn.removeEventListener("click", handleRightClick);
-            this.hideQuizModal();
-            resolve(true); // Right answer
-        };
-
-        wrongBtn.addEventListener("click", handleWrongClick);
-        rightBtn.addEventListener("click", handleRightClick);
-    }
-
     updateScoreboard = () => {
         // Update scoreboard display
         for (const playerName in this.playerScores) {
@@ -468,54 +430,116 @@ class GameBoard {
             const powerUpElement = document.getElementById(`${playerName}-powerup`);
             
             if (rightElement) {
-                rightElement.textContent = this.playerScores[playerName].right;
+                rightElement.textContent = this.playerScores[playerName].score;
             }
             if (wrongElement) {
-                wrongElement.textContent = this.playerScores[playerName].wrong;
+                wrongElement.textContent = "0";
             }
             if (powerUpElement) {
-                powerUpElement.textContent = this.playerPowerUps[playerName] || 0;
+                powerUpElement.textContent = "0";
             }
         }
     }
 
-    showToast = (message, duration = 2000) => {
-        return new Promise((resolve) => {
-            let toast = document.getElementById("gameToast");
-            if (!toast) {
-                toast = document.createElement("div");
-                toast.id = "gameToast";
-                toast.style.cssText = `
-                    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                    background: rgba(0,0,0,0.85); color: white; padding: 18px 28px;
-                    border-radius: 12px; font-size: 1.1rem; font-weight: bold;
-                    z-index: 9999; text-align: center; pointer-events: none;
-                    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-                    transition: opacity 0.3s ease;
-                `;
-                document.body.appendChild(toast);
-            }
-            toast.textContent = message;
-            toast.style.opacity = "1";
-            toast.style.display = "block";
-            setTimeout(() => {
-                toast.style.opacity = "0";
-                setTimeout(() => {
-                    toast.style.display = "none";
-                    resolve();
-                }, 300);
-            }, duration);
+    getActivePlayerNames = () => {
+        if (this.numberOfPlayers === 1) {
+            return ["red", "computer"];
+        }
+
+        return this.playerNames.slice(0, this.numberOfPlayers);
+    }
+
+    setDiceButtonsDisabled = (isDisabled) => {
+        this.diceButtons.forEach((button) => {
+            button.disabled = isDisabled;
         });
     }
 
-    showPowerUpNotification = (playerName) => {
-        return this.showToast(`🎉 ${playerName} earned a Power-Up! Shield against snakes!`);
+    setUndoDisabled = (isDisabled) => {
+        if (this.undoButton) {
+            this.undoButton.disabled = isDisabled;
+        }
     }
 
-    askQuiz = (playerName) => {
-        return new Promise((resolve) => {
-            this.displayQuiz(resolve);
-        });
+    saveHistoryState = () => {
+        const historyState = {
+            playerPositions: { ...this.playerPositions },
+            currentPlayerTurn: this.currentPlayerTurn,
+            selectedPlayerName: this.selectedPlayerName,
+            podium: [...this.podium],
+            playerScores: JSON.parse(JSON.stringify(this.playerScores))
+        };
+
+        this.moveHistory.push(historyState);
+        this.setUndoDisabled(false);
+    }
+
+    renderBoardState = () => {
+        const boardEl = document.querySelector("#gameBoard");
+
+        for (const playerName in this.players) {
+            const playerPiece = this.players[playerName].getPiece();
+            playerPiece.classList.remove("podium");
+            boardEl.appendChild(playerPiece);
+        }
+
+        const restoredPodium = [...this.podium];
+        this.podium = [];
+        restoredPodium.forEach((playerName) => this.setPodium(playerName));
+
+        for (const playerName in this.players) {
+            this.players[playerName].setPosition(this.playerPositions[playerName]);
+            this.players[playerName].updatePosition();
+        }
+
+        this.updatePieceStacking();
+    }
+
+    undoLastMove = () => {
+        if (this.moveHistory.length === 0) {
+            alert("No move to undo.");
+            return;
+        }
+
+        const previousState = this.moveHistory.pop();
+        this.playerPositions = { ...previousState.playerPositions };
+        this.currentPlayerTurn = previousState.currentPlayerTurn;
+        this.selectedPlayerName = previousState.selectedPlayerName;
+        this.podium = [...previousState.podium];
+        this.playerScores = JSON.parse(JSON.stringify(previousState.playerScores));
+
+        this.renderBoardState();
+        this.updateScoreboard();
+        this.updatePlayers();
+        this.updateTurn();
+        this.storeGameSnapshot();
+        this.setUndoDisabled(this.moveHistory.length === 0);
+    }
+
+    setTurnFromPlayerName = (playerName) => {
+        if (this.numberOfPlayers === 1 && playerName === "computer") {
+            this.currentPlayerTurn = 1;
+            return;
+        }
+
+        const playerIndex = this.playerNames.indexOf(playerName);
+        this.currentPlayerTurn = playerIndex >= 0 ? playerIndex : 0;
+    }
+
+    selectPlayerByPiece = (playerName) => {
+        const activePlayers = this.getActivePlayerNames();
+        if (!activePlayers.includes(playerName)) {
+            return;
+        }
+
+        if (this.podium.includes(playerName)) {
+            alert(`${playerName} already finished. Choose another player.`);
+            return;
+        }
+
+        this.selectedPlayerName = playerName;
+        this.setTurnFromPlayerName(playerName);
+        this.updateTurn();
     }
 
     fetchGameState = () => {
@@ -542,6 +566,7 @@ class GameBoard {
             this.players["blue"].updatePosition();
             this.players["yellow"].updatePosition();
             this.players["computer"].updatePosition();
+            this.updatePieceStacking();
             this.playGround();
         }
     }
@@ -550,18 +575,11 @@ class GameBoard {
     resetGame = () => {
         this.playerPositions = { red: 0, green: 0, blue: 0, yellow: 0, computer: 0 };
         this.playerScores = { 
-            red: { right: 0, wrong: 0 },
-            green: { right: 0, wrong: 0 },
-            blue: { right: 0, wrong: 0 },
-            yellow: { right: 0, wrong: 0 },
-            computer: { right: 0, wrong: 0 }
-        };
-        this.playerPowerUps = {
-            red: 0,
-            green: 0,
-            blue: 0,
-            yellow: 0,
-            computer: 0
+            red: { score: 0 },
+            green: { score: 0 },
+            blue: { score: 0 },
+            yellow: { score: 0 },
+            computer: { score: 0 }
         };
         this.updateScoreboard();
         localStorage.removeItem("gameState");
@@ -572,24 +590,44 @@ class GameBoard {
             player.updatePosition();
         }
 
+        this.updatePieceStacking();
+
         this.currentPlayerTurn = 0;
+        this.selectedPlayerName = null;
         this.isGameOver = false;
         this.podium = [];
+        this.moveHistory = [];
+        this.setUndoDisabled(true);
         this.updateTurn();
         this.updatePlayers();
         this.showMenu();
     }
 
-    playerRoll = () => {
+    playerRoll = (forcedRunNumber) => {
         if (this.isPlaying === false) {
             this.playAudio("./audio/bg.mp3");
             this.isPlaying = true;
         }
-        if (this.currentPlayerTurn === 0) this.playGame(this.players["red"]);
-        if (this.numberOfPlayers !== 1 && this.currentPlayerTurn === 1) this.playGame(this.players["green"]);
-        if (this.currentPlayerTurn === 2) this.playGame(this.players["blue"]);
-        if (this.currentPlayerTurn === 3) this.playGame(this.players["yellow"]);
-        if (this.numberOfPlayers === 1 && this.currentPlayerTurn === 1) this.playGame(this.players["computer"]);
+
+        if (!this.selectedPlayerName) {
+            alert("Choose a player by clicking a piece first.");
+            return;
+        }
+
+        if (this.podium.includes(this.selectedPlayerName)) {
+            alert(`${this.selectedPlayerName} already finished. Choose another player.`);
+            return;
+        }
+
+        if (!Number.isInteger(forcedRunNumber) || forcedRunNumber < 1 || forcedRunNumber > 6) {
+            alert("Run number must be an integer from 1 to 6.");
+            return;
+        }
+
+        this.setTurnFromPlayerName(this.selectedPlayerName);
+        this.updateTurn();
+        this.saveHistoryState();
+        this.playGame(this.players[this.selectedPlayerName], forcedRunNumber);
     }
 
     initializeGame = () => {
@@ -618,7 +656,8 @@ class GameBoard {
         const playTwoPlayersBtn = document.querySelector("#playTwoPlayersBtn");
         const playThreePlayersBtn = document.querySelector("#playThreePlayersBtn");
         const playFourPlayersBtn = document.querySelector("#playFourPlayersBtn");
-        const superPlayButton = document.getElementById("superplay");
+        const diceChoiceButtons = document.querySelectorAll(".dice-choice");
+        const undoMoveBtn = document.querySelector("#undoMoveBtn");
         const resetBtn = document.querySelector("#resetBtn");
 
         let players = {
@@ -645,10 +684,34 @@ class GameBoard {
         this.playerPositions = playerPositions;
         this.currentPlayerTurn = 0;
         this.numberOfPlayers = 0;
-        this.superPlayButton = superPlayButton;
+        this.diceButtons = Array.from(diceChoiceButtons);
+        this.undoButton = undoMoveBtn;
         this.isGameOver = false;
 
-        superPlayButton.addEventListener("click", this.playerRoll);
+        this.playerScores = {
+            red: { score: 0 },
+            green: { score: 0 },
+            blue: { score: 0 },
+            yellow: { score: 0 },
+            computer: { score: 0 }
+        };
+        this.updateScoreboard();
+
+        redPlayerPiece.addEventListener("click", () => this.selectPlayerByPiece("red"));
+        greenPlayerPiece.addEventListener("click", () => this.selectPlayerByPiece("green"));
+        bluePlayerPiece.addEventListener("click", () => this.selectPlayerByPiece("blue"));
+        yellowPlayerPiece.addEventListener("click", () => this.selectPlayerByPiece("yellow"));
+        computerPlayerPiece.addEventListener("click", () => this.selectPlayerByPiece("computer"));
+
+        this.diceButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const runNumber = Number(button.dataset.roll);
+                this.playerRoll(runNumber);
+            });
+        });
+
+        this.undoButton.addEventListener("click", this.undoLastMove);
+        this.setUndoDisabled(true);
 
         resetBtn.addEventListener("click", this.resetGame);
 
@@ -679,8 +742,8 @@ class GameBoard {
 
         /* Start game on enter key press */
         window.addEventListener("keypress", (e) => {
-            if (e.code === "Enter" && superPlayButton.disabled === false && this.isGameOver === false) {
-                this.playerRoll();
+            if (e.code === "Enter" && this.isGameOver === false) {
+                this.playerRoll(1);
             }
             // this.playerRoll();
         });
@@ -696,6 +759,8 @@ class GameBoard {
                 for (let player in this.players) {
                     this.players[player].setScale(this.scale);
                 }
+
+                this.updatePieceStacking();
             }
         }
 

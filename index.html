@@ -19,16 +19,6 @@
         </div>
     </div>
 
-    <div id="quizModal" class="quiz-modal">
-        <div class="quiz-modal-content">
-            <h2 id="quizQuestion">Question 1</h2>
-            <div class="quiz-buttons">
-                <button id="wrongBtn" class="quiz-btn-wrong">Wrong</button>
-                <button id="rightBtn" class="quiz-btn-right">Right</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Scoreboard -->
     <div id="scoreboard" class="scoreboard">
         <h3>Score</h3>
@@ -99,9 +89,15 @@
         
                 <div id="gameController">
                     <div id="dice"></div>
-                    <button id="superplay" disabled>
-                        <img src="./icons/play.svg" alt="Play button">
-                    </button>
+                    <div id="diceChoices">
+                        <button class="dice-choice" data-roll="1" disabled>1</button>
+                        <button class="dice-choice" data-roll="2" disabled>2</button>
+                        <button class="dice-choice" data-roll="3" disabled>3</button>
+                        <button class="dice-choice" data-roll="4" disabled>4</button>
+                        <button class="dice-choice" data-roll="5" disabled>5</button>
+                        <button class="dice-choice" data-roll="6" disabled>6</button>
+                    </div>
+                    <button id="undoMoveBtn" disabled>Undo</button>
                 </div>
     
                 <div id="gamePodium">
