@@ -67,10 +67,10 @@ class Player {
 
         // Check if the position indicator is 0
         if (this.position === 0) {
-            // Set the vertical position of the player element
-            this.piece.style.bottom = `${Math.round(-1.9 * scaleSize)}px`;
-            // Set the horizontal position based on player type
-            this.piece.style.left = `${this.index * scaleSize}px`;
+            // Set the vertical position of the player element - align with control buttons
+            this.piece.style.bottom = `${Math.round(-90)}px`;
+            // Set the horizontal position based on player type - closer together, shifted left
+            this.piece.style.left = `${Math.round(this.index * scaleSize * 0.5)}px`;
         } else {
             const rowIndex = Math.floor((this.position - 1) / TILES_PER_ROW);
             const colIndex = (this.position - 1) % TILES_PER_ROW;

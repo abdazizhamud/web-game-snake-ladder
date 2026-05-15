@@ -219,7 +219,12 @@ class GameBoard {
 
         const spacing = Math.max(8, Math.round(this.scale * TILE_SIZE * 0.25));
 
-        Object.values(positionBuckets).forEach((bucket) => {
+        Object.entries(positionBuckets).forEach(([position, bucket]) => {
+            // Skip stacking for position 0 (starting area) - pieces stay in their lanes
+            if (position === "0") {
+                return;
+            }
+
             bucket.forEach((playerName, index) => {
                 const piece = this.players[playerName].getPiece();
                 const baseLeft = Number.parseInt(piece.style.left || "0", 10);
@@ -619,8 +624,8 @@ class GameBoard {
             return;
         }
 
-        if (!Number.isInteger(forcedRunNumber) || forcedRunNumber < 1 || forcedRunNumber > 6) {
-            alert("Run number must be an integer from 1 to 6.");
+        if (!Number.isInteger(forcedRunNumber) || forcedRunNumber < 1 || forcedRunNumber > 7) {
+            alert("Run number must be an integer from 1 to 7.");
             return;
         }
 
