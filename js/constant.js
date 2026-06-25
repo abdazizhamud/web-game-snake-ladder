@@ -22,7 +22,7 @@ const SNAKES_AND_LADDERS_01 = {
 };
 
 
-const GAME_BOARD_BG_02 = "./img/bg5.jpg";
+const GAME_BOARD_BG_02 = "./img/Frame 26(2).png";
 const SNAKES_AND_LADDERS_02 = {
     5: 58,
     14: 49,
