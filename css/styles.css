@@ -65,6 +65,7 @@ button {
     height: 0px;
     padding-top: 100%;
     background-color: blue;
+    border-radius: 50px;
 }
 
 #gameBoard {
@@ -140,9 +141,30 @@ button {
 
 #gamePodium .podium {
     position: static !important;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
+    width: 50px !important;
+    height: 50px !important;
+    border-radius: 50% !important;
+    background-size: 195px 120px !important;
+}
+
+#gamePodium .podium#redPlayerPiece {
+    background-position: 0px -70px !important;
+}
+
+#gamePodium .podium#greenPlayerPiece {
+    background-position: -70px -70px !important;
+}
+
+#gamePodium .podium#bluePlayerPiece {
+    background-position: -145px 0px !important;
+}
+
+#gamePodium .podium#yellowPlayerPiece {
+    background-position: -144px -70px !important;
+}
+
+#gamePodium .podium#computerPlayerPiece {
+    background-position: 0px 0px !important;
 }
 
 
@@ -210,7 +232,7 @@ button {
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    transform: scale(0.7);
+    transform: scale(1);
     border-radius: 50%;
     /* animation-name: rotate;
     animation-duration: 5s;
@@ -249,53 +271,53 @@ button {
 
 @keyframes animate {
     0% {
-        /* transform: scale(0.7) rotate(0deg); */
+        /* transform: scale(1) rotate(0deg); */
         box-shadow: 0px 0px 0px 0px goldenrod;
-        transform: scale(0.7);
+        transform: scale(1);
     }
 
 
     50% {
         box-shadow: 0px 0px 5px 6px goldenrod;
-        transform: scale(0.6);
+        transform: scale(0.85);
 
     }
 
     100% {
-        /* transform: scale(0.7) rotate(360deg); */
+        /* transform: scale(1) rotate(360deg); */
         box-shadow: 0px 0px 0px 0px goldenrod;
-        transform: scale(0.7);
+        transform: scale(1);
     }
 }
 
 @keyframes rotate {
     0% {
-        transform: scale(0.7) rotate(0deg);
+        transform: scale(1) rotate(0deg);
     }
 
     100% {
-        transform: scale(0.7) rotate(360deg);
+        transform: scale(1) rotate(360deg);
     }
 }
 
 
 #red {
-    background: red;
+    background: rgb(255, 191, 0);
     border: 1px solid white;
 }
 
 #green {
-    background: green;
+    background: rgb(9, 0, 128);
     border: 1px solid white;
 }
 
 #blue {
-    background: blue;
+    background: rgb(10, 114, 33);
     border: 1px solid white;
 }
 
 #yellow {
-    background: yellow;
+    background: rgb(206, 17, 67);
     border: 1px solid white;
 }
 
@@ -342,7 +364,7 @@ button {
 @media screen and (min-width: 0px) {
     #playground {
         padding: 95px 20px;
-        max-width: 540px;
+        max-width: 740px;
         min-width: 375px;
     }
 

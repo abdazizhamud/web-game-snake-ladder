@@ -13,11 +13,11 @@ class GameBoard {
         this.isGameOver = true;
         this.podium = [];
         this.scale = 1;
-        this.selectedPlayerName = null;
+        this.selectedPlayerName = "red";
         this.diceButtons = [];
         this.undoButton = null;
         this.moveHistory = [];
-        
+
         // Score tracking for each player
         this.playerScores = {};
 
@@ -171,32 +171,54 @@ class GameBoard {
         });
     }
 
-    getStackOffset = (stackIndex, stackCount, spacing) => {
+    getStackOffset = (stackIndex, stackCount) => {
+        const redPlayer = this.players["red"];
+        const W = redPlayer ? redPlayer.tileWidth : 100;
+        const H = redPlayer ? redPlayer.tileHeight : 100;
+
         if (stackCount <= 1) {
             return { x: 0, y: 0 };
         }
 
-        // Keep pieces readable when multiple players occupy one tile.
+        // 2 players: side-by-side
         if (stackCount === 2) {
             return {
-                x: stackIndex === 0 ? -spacing : spacing,
+                x: Math.round(stackIndex === 0 ? -W * 0.16 : W * 0.16),
                 y: 0
             };
         }
 
+        // 3 players: triangle
         if (stackCount === 3) {
+            if (stackIndex === 0) {
+                return { x: Math.round(-W * 0.16), y: Math.round(-H * 0.12) };
+            } else if (stackIndex === 1) {
+                return { x: Math.round(W * 0.16), y: Math.round(-H * 0.12) };
+            } else {
+                return { x: 0, y: Math.round(H * 0.15) };
+            }
+        }
+
+        // 4 players: 2x2 grid
+        if (stackCount === 4) {
+            const row = Math.floor(stackIndex / 2);
+            const col = stackIndex % 2;
             return {
-                x: (stackIndex - 1) * spacing,
-                y: 0
+                x: Math.round(col === 0 ? -W * 0.16 : W * 0.16),
+                y: Math.round(row === 0 ? -H * 0.12 : H * 0.12)
             };
         }
 
-        const row = Math.floor(stackIndex / 2);
-        const col = stackIndex % 2;
-        return {
-            x: col === 0 ? -spacing : spacing,
-            y: row === 0 ? -spacing / 2 : spacing / 2
-        };
+        // 5 players: 2x2 grid + 1 center
+        if (stackIndex < 4) {
+            const row = Math.floor(stackIndex / 2);
+            const col = stackIndex % 2;
+            return {
+                x: Math.round(col === 0 ? -W * 0.16 : W * 0.16),
+                y: Math.round(row === 0 ? -H * 0.12 : H * 0.12)
+            };
+        }
+        return { x: 0, y: 0 };
     }
 
     updatePieceStacking = () => {
@@ -217,8 +239,6 @@ class GameBoard {
             positionBuckets[position].push(playerName);
         });
 
-        const spacing = Math.max(8, Math.round(this.scale * TILE_SIZE * 0.25));
-
         Object.entries(positionBuckets).forEach(([position, bucket]) => {
             // Skip stacking for position 0 (starting area) - pieces stay in their lanes
             if (position === "0") {
@@ -229,7 +249,7 @@ class GameBoard {
                 const piece = this.players[playerName].getPiece();
                 const baseLeft = Number.parseInt(piece.style.left || "0", 10);
                 const baseBottom = Number.parseInt(piece.style.bottom || "0", 10);
-                const offset = this.getStackOffset(index, bucket.length, spacing);
+                const offset = this.getStackOffset(index, bucket.length);
 
                 piece.style.left = `${baseLeft + offset.x}px`;
                 piece.style.bottom = `${baseBottom + offset.y}px`;
@@ -433,7 +453,7 @@ class GameBoard {
             const rightElement = document.getElementById(`${playerName}-right`);
             const wrongElement = document.getElementById(`${playerName}-wrong`);
             const powerUpElement = document.getElementById(`${playerName}-powerup`);
-            
+
             if (rightElement) {
                 rightElement.textContent = this.playerScores[playerName].score;
             }
@@ -526,7 +546,7 @@ class GameBoard {
             this.currentPlayerTurn = 1;
             return;
         }
-
+        console.log(playerName)
         const playerIndex = this.playerNames.indexOf(playerName);
         this.currentPlayerTurn = playerIndex >= 0 ? playerIndex : 0;
     }
@@ -578,13 +598,13 @@ class GameBoard {
 
 
     resetGame = () => {
-        this.playerPositions = { red: 0, green: 0, blue: 0, yellow: 0, computer: 0 };
-        this.playerScores = { 
-            red: { score: 0 },
-            green: { score: 0 },
-            blue: { score: 0 },
-            yellow: { score: 0 },
-            computer: { score: 0 }
+        this.playerPositions = { red: 1, green: 1, blue: 1, yellow: 1, computer: 1 };
+        this.playerScores = {
+            red: { score: 1 },
+            green: { score: 1 },
+            blue: { score: 1 },
+            yellow: { score: 1 },
+            computer: { score: 1 }
         };
         this.updateScoreboard();
         localStorage.removeItem("gameState");
@@ -674,11 +694,11 @@ class GameBoard {
         };
 
         let playerPositions = {
-            red: 0,
-            green: 0,
-            blue: 0,
-            yellow: 0,
-            computer: 0,
+            red: 1,
+            green: 1,
+            blue: 1,
+            yellow: 1,
+            computer: 1,
         };
 
 
@@ -753,12 +773,12 @@ class GameBoard {
             // this.playerRoll();
         });
 
-        const  windowResize = () => {
+        const windowResize = () => {
             const boardWrapper = document.querySelector("#boardWrapper");
-            
+
             if (boardWrapper) {
                 console.log(boardWrapper);
-                this.scale = boardWrapper.clientWidth / 500;
+                this.scale = boardWrapper.clientWidth / BOARD_SIZE;
                 console.log(this.scale);
                 console.log(this.playerPositions);
                 for (let player in this.players) {
@@ -769,8 +789,8 @@ class GameBoard {
             }
         }
 
-        window.addEventListener("resize",windowResize);
-
+        window.addEventListener("resize", windowResize);
+        windowResize();
 
         this.updateTurn();
     }

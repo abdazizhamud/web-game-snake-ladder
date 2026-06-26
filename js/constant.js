@@ -1,8 +1,14 @@
 const GAME_BOARD_BG_01 = "./img/bg.jpg";
-const BOARD_SIZE = 500;
+const BOARD_SIZE = 700;
 const TILES_PER_ROW = 6;
 const TOTAL_TILES = TILES_PER_ROW * TILES_PER_ROW;
 const TILE_SIZE = BOARD_SIZE / TILES_PER_ROW;
+
+// Active grid percentages (measured from Frame 26(2).png coordinates)
+const GRID_MARGIN_LEFT_PCT = 0.0678;
+const GRID_MARGIN_BOTTOM_PCT = 0.0627;
+const GRID_WIDTH_PCT = 0.8644;
+const GRID_HEIGHT_PCT = 0.8746;
 const SNAKES_AND_LADDERS_01 = {
     1: 38,
     4: 14,
