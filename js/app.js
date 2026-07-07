@@ -413,16 +413,41 @@ class GameBoard {
         this.setDiceButtonsDisabled(false);
         this.setUndoDisabled(this.moveHistory.length === 0);
 
+        // Switch turn to the next active player automatically
+        let nextTurn = this.getNextActiveTurn();
+        this.currentPlayerTurn = nextTurn;
+        this.selectedPlayerName = (this.numberOfPlayers === 1 && nextTurn === 1) ? "computer" : this.playerNames[nextTurn];
+
         this.storeGameSnapshot(this.playerPositions, this.currentPlayerTurn, this.numberOfPlayers);
         player.setPosition(this.playerPositions[playerName]);
         player.updatePosition();
         this.updatePieceStacking();
         this.updateTurn();
 
-
-
+        // If next player is computer, trigger auto-roll
+        if (this.selectedPlayerName === "computer" && !this.isGameOver) {
+            this.setDiceButtonsDisabled(true); // Disable manual buttons during computer turn
+            setTimeout(() => {
+                const cpuRoll = Math.floor(Math.random() * 6) + 1;
+                this.playerRoll(cpuRoll);
+            }, 1200);
+        }
     }
 
+    getNextActiveTurn = () => {
+        let activeNames = this.getActivePlayerNames();
+        let checked = 0;
+        let testTurn = this.currentPlayerTurn;
+        while (checked < activeNames.length) {
+            testTurn = (testTurn + 1) % activeNames.length;
+            let nextPlayerName = this.numberOfPlayers === 1 && testTurn === 1 ? "computer" : this.playerNames[testTurn];
+            if (!this.podium.includes(nextPlayerName)) {
+                return testTurn;
+            }
+            checked++;
+        }
+        return this.currentPlayerTurn;
+    }
 
     showMenu = () => {
         document.querySelector("#menu").style.display = "flex";
@@ -434,7 +459,8 @@ class GameBoard {
         document.querySelector("#menu").style.display = "none";
         document.querySelector("#playground").style.display = "flex";
         this.setDiceButtonsDisabled(false);
-        this.selectedPlayerName = null;
+        this.selectedPlayerName = "red"; // Select first player automatically
+        this.currentPlayerTurn = 0;
         this.moveHistory = [];
         this.setUndoDisabled(true);
 
@@ -450,14 +476,18 @@ class GameBoard {
     }
 
     playAudio = (src) => {
-        var audio = new Audio(src);
+        try {
+            var audio = new Audio(src);
 
-        if (src == "./audio/bg.mp3") {
-            audio.volume = 0.1;
-        } else {
-            audio.volume = 1;
+            if (src == "./audio/bg.mp3") {
+                audio.volume = 0.1;
+            } else {
+                audio.volume = 1;
+            }
+            audio.play().catch(e => console.log("Audio play blocked or failed:", e));
+        } catch (e) {
+            console.log("Audio initialization failed:", e);
         }
-        audio.play();
     }
 
     updateScoreboard = () => {
@@ -709,7 +739,7 @@ class GameBoard {
 
         for (const playerName in this.players) {
             let player = this.players[playerName];
-            player.setPosition(0);
+            player.setPosition(1);
             player.updatePosition();
         }
 
@@ -776,11 +806,11 @@ class GameBoard {
         const playerYellowBtn = document.getElementById("yellow"); /* Yellow Play Button */
         const computerPlayerBtn = document.getElementById("computer"); /* Computer Play Button */
 
-        const redPlayer = new Player(0, "red", redPlayerPiece, redPlayerBtn, 0);
-        const greenPlayer = new Player(1, "green", greenPlayerPiece, greenPlayerBtn, 0);
-        const bluePlayer = new Player(2, "blue", bluePlayerPiece, playerBlueBtn, 0);
-        const yellowPlayer = new Player(3, "yellow", yellowPlayerPiece, playerYellowBtn, 0);
-        const computerPlayer = new Player(4, "computer", computerPlayerPiece, computerPlayerBtn, 0);
+        const redPlayer = new Player(0, "red", redPlayerPiece, redPlayerBtn, 1);
+        const greenPlayer = new Player(1, "green", greenPlayerPiece, greenPlayerBtn, 1);
+        const bluePlayer = new Player(2, "blue", bluePlayerPiece, playerBlueBtn, 1);
+        const yellowPlayer = new Player(3, "yellow", yellowPlayerPiece, playerYellowBtn, 1);
+        const computerPlayer = new Player(4, "computer", computerPlayerPiece, computerPlayerBtn, 1);
 
         /* Menu Buttons */
         const playComputerBtn = document.querySelector("#playComputerBtn");
@@ -833,6 +863,12 @@ class GameBoard {
         bluePlayerPiece.addEventListener("click", () => this.selectPlayerByPiece("blue"));
         yellowPlayerPiece.addEventListener("click", () => this.selectPlayerByPiece("yellow"));
         computerPlayerPiece.addEventListener("click", () => this.selectPlayerByPiece("computer"));
+
+        redPlayerBtn.addEventListener("click", () => this.selectPlayerByPiece("red"));
+        greenPlayerBtn.addEventListener("click", () => this.selectPlayerByPiece("green"));
+        playerBlueBtn.addEventListener("click", () => this.selectPlayerByPiece("blue"));
+        playerYellowBtn.addEventListener("click", () => this.selectPlayerByPiece("yellow"));
+        computerPlayerBtn.addEventListener("click", () => this.selectPlayerByPiece("computer"));
 
         this.diceButtons.forEach((button) => {
             button.addEventListener("click", () => {
@@ -887,21 +923,11 @@ class GameBoard {
 
             if (!boardWrapper || !gameBoard) return;
 
-            // Available height = viewport - controls bar height
-            const controlsH = controlsBar ? controlsBar.offsetHeight : 70;
-            const availW = window.innerWidth;
-            const availH = window.innerHeight - controlsH;
+            // Let the boardWrapper fill the entire screen (occupy full viewport width and height)
+            let boardW = window.innerWidth;
+            let boardH = window.innerHeight;
 
-            // Fit 16:9 board into available space
-            let boardW = availW;
-            let boardH = Math.round(boardW * 9 / 16);
-
-            if (boardH > availH) {
-                boardH = availH;
-                boardW = Math.round(boardH * 16 / 9);
-            }
-
-            // Apply size to boardWrapper so it centers correctly
+            // Apply size to boardWrapper so it occupies full screen
             boardWrapper.style.width  = boardW + "px";
             boardWrapper.style.height = boardH + "px";
 
@@ -909,7 +935,7 @@ class GameBoard {
             this.scale = boardW / BOARD_SIZE;
 
             for (let player in this.players) {
-                this.players[player].setScale(this.scale);
+                this.players[player].setScale(this.scale, boardW, boardH);
             }
             this.updatePieceStacking();
 

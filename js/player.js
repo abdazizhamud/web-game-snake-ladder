@@ -53,12 +53,11 @@ class Player {
         return this.scale;
     }
 
-    setScale(scale) {
+    setScale(scale, boardW = null, boardH = null) {
         this.scale = scale;
         
-        // Calculate actual board width/height (PapanFull.png is 16:9)
-        const B_width = scale * BOARD_SIZE;
-        const B_height = B_width * 0.5625; // 1080/1920
+        const B_width = boardW || (scale * BOARD_SIZE);
+        const B_height = boardH || (B_width * 0.5625); // 1080/1920
         
         // Calculate grid tile dimensions
         const tile_width = (B_width * GRID_WIDTH_PCT) / TILES_PER_ROW;
@@ -67,6 +66,7 @@ class Player {
         this.tileWidth = tile_width;
         this.tileHeight = tile_height;
         this.boardSize = B_width;
+        this.boardHeight = B_height;
 
         // Set player size to 80% of smallest tile dimension (a bit smaller than tile)
         const playerSize = Math.round(Math.min(tile_width, tile_height) * 0.80);
@@ -90,7 +90,7 @@ class Player {
 
         // Fallback calculations if setScale hasn't run yet
         const B_width = this.boardSize || (this.scale * BOARD_SIZE);
-        const B_height = B_width * 0.5625; // 16:9 aspect ratio (1080/1920)
+        const B_height = this.boardHeight || (B_width * 0.5625); // 16:9 aspect ratio (1080/1920)
 
         const tile_width = this.tileWidth || ((B_width * GRID_WIDTH_PCT) / TILES_PER_ROW);
         const tile_height = this.tileHeight || ((B_height * GRID_HEIGHT_PCT) / TILES_PER_ROW);

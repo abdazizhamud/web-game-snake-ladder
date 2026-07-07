@@ -7,10 +7,10 @@ const TILE_SIZE = BOARD_SIZE / TILES_PER_ROW;
 // Active grid percentages (measured from PapanFull.png coordinates)
 // PapanFull.png is 1920x1080 (16:9)
 // Board grid area: left~462px, right~988px, top~145px, bottom~710px
-const GRID_MARGIN_LEFT_PCT = 0.2406;   // 462/1920
-const GRID_MARGIN_BOTTOM_PCT = 0.3426;  // (1080-710)/1080
-const GRID_WIDTH_PCT = 0.2740;          // (988-462)/1920
-const GRID_HEIGHT_PCT = 0.5231;         // (710-145)/1080
+const GRID_MARGIN_LEFT_PCT = 0.3208;   // 616/1920
+const GRID_MARGIN_BOTTOM_PCT = 0.1778;  // (1080-888)/1080
+const GRID_WIDTH_PCT = 0.3573;          // (1302-616)/1920
+const GRID_HEIGHT_PCT = 0.6454;         // (888-191)/1080
 
 // New bidak (piece) image paths
 const BIDAK_IMAGES = {
