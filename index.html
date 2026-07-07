@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,77 +7,99 @@
     <link rel="stylesheet" href="./css/styles.css">
     <link rel="shortcut icon" href="./favicon.png" type="image/x-icon">
 </head>
-
 <body>
+
+    <!-- MENU SCREEN -->
     <div id="menu">
         <div class="menu__container">
+            <h2>🐍 Ular Tangga</h2>
             <button id="playComputerBtn">1 vs Computer</button>
-            <button id="playTwoPlayersBtn">Two Players</button>
-            <button id="playThreePlayersBtn">Three Players</button>
-            <button id="playFourPlayersBtn">Four Players</button>
+            <button id="playTwoPlayersBtn">2 Pemain</button>
+            <button id="playThreePlayersBtn">3 Pemain</button>
+            <button id="playFourPlayersBtn">4 Pemain</button>
         </div>
     </div>
 
-
-    <div id="playground">
+    <!-- GAME SCREEN: boardWrapper = full 16:9 image container -->
+    <div id="playground" style="display:none;">
         <div id="boardWrapper">
+            <!-- gameBoard = coordinate space for pieces & bombs -->
             <div id="gameBoard">
-                <div class="player" id="redPlayerPiece">
-                    
-                </div>
-                <div class="player" id="greenPlayerPiece">
-                    
-                </div>
-                <div class="player" id="bluePlayerPiece">
-                    
-                </div>
-                <div class="player" id="yellowPlayerPiece">
-                    
-                </div>
-    
+                <div class="player" id="redPlayerPiece"></div>
+                <div class="player" id="greenPlayerPiece"></div>
+                <div class="player" id="bluePlayerPiece"></div>
+                <div class="player" id="yellowPlayerPiece"></div>
                 <div class="player" id="computerPlayerPiece">
-                    <span class="player-name">Computer</span>
+                    <span class="player-name">CPU</span>
                 </div>
-    
                 <div id="startingLinePlayers"></div>
-                
-        
-                <div id="gameController">
-                    <div id="dice"></div>
-                    <div id="diceChoices">
-                        <button class="dice-choice" data-roll="1" disabled>1</button>
-                        <button class="dice-choice" data-roll="2" disabled>2</button>
-                        <button class="dice-choice" data-roll="3" disabled>3</button>
-                        <button class="dice-choice" data-roll="4" disabled>4</button>
-                        <button class="dice-choice" data-roll="5" disabled>5</button>
-                        <button class="dice-choice" data-roll="6" disabled>6</button>
-                        <button class="dice-choice" data-roll="7" disabled>7</button>
-                    </div>
-                    <button id="undoMoveBtn" disabled>Undo</button>
+                <div id="gamePodium"></div>
+            </div>
+
+            <!-- Controls overlay: inside boardWrapper at bottom (coral area) -->
+            <div id="gameControlsBar">
+                <!-- 1. Bidak thumbnails (player selection) -->
+                <div class="ctrl-section" id="bidakSection">
+                    <button class="bidak-btn play" id="red"   data-player="red">
+                        <img src="./img/bidakA.png" alt="A">
+                    </button>
+                    <button class="bidak-btn play" id="green" data-player="green">
+                        <img src="./img/bidakB.png" alt="B">
+                    </button>
+                    <button class="bidak-btn play" id="blue"  data-player="blue">
+                        <img src="./img/bidakC.png" alt="C">
+                    </button>
+                    <button class="bidak-btn play" id="yellow" data-player="yellow">
+                        <img src="./img/bidakD.png" alt="D">
+                    </button>
+                    <button class="bidak-btn play" id="computer" data-player="computer" style="display:none;">
+                        <img src="./img/bidakA.png" alt="CPU">
+                    </button>
                 </div>
-    
-                <div id="gamePodium">
+
+                <div class="ctrl-divider"></div>
+
+                <!-- 2. Dice display -->
+                <div id="dice"></div>
+
+                <!-- 3. Number roll buttons -->
+                <div id="diceChoices">
+                    <button class="dice-choice" data-roll="1" disabled>1</button>
+                    <button class="dice-choice" data-roll="2" disabled>2</button>
+                    <button class="dice-choice" data-roll="3" disabled>3</button>
+                    <button class="dice-choice" data-roll="4" disabled>4</button>
+                    <button class="dice-choice" data-roll="5" disabled>5</button>
+                    <button class="dice-choice" data-roll="6" disabled>6</button>
+                    <button class="dice-choice" data-roll="7" disabled>7</button>
                 </div>
+
+                <!-- 4. Undo -->
+                <button id="undoMoveBtn" disabled>↩ Undo</button>
+
+                <!-- 5. Reset -->
+                <button id="resetBtn">
+                    <img src="./icons/arrow-clockwise.svg" alt="Reset">
+                </button>
+            </div>
+        </div><!-- end boardWrapper -->
+
+        <!-- Bomb Modal -->
+        <div id="bombModal" style="display:none;">
+            <div class="bomb-modal-overlay" onclick="this.parentElement.style.display='none'"></div>
+            <div class="bomb-modal-content">
+                <div class="bomb-modal-icon">💣</div>
+                <h2>SOAL BOM TERBUKA!</h2>
+                <p id="bombModalMessage">Pemain menginjak bom!</p>
+                <button id="bombModalClose" onclick="document.getElementById('bombModal').style.display='none'">Tutup</button>
             </div>
         </div>
-    
-        <div class="controller">
-            <button class="play" id="red"></button>
-            <button class="play" id="green"></button>
-            <button class="play" id="blue"></button>
-            <button class="play" id="yellow"></button>
-            <button class="play" id="computer"></button>
-            <button id="resetBtn">
-                <img src="./icons/arrow-clockwise.svg" alt="Restart" title="Reset">
-            </button>
-        </div>
-        <div id="log" style="display: none;"></div>
-    </div>
+
+        <div id="log" style="display:none;"></div>
+    </div><!-- end playground -->
 
     <script src="./js/constant.js"></script>
     <script src="./js/player.js"></script>
     <script src="./js/board.js"></script>
     <script src="./js/app.js"></script>
 </body>
-
 </html>

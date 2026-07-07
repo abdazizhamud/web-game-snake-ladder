@@ -21,6 +21,8 @@ class GameBoard {
         // Score tracking for each player
         this.playerScores = {};
 
+        // Bomb tracking: set of squares that still have bombs
+        this.activeBombs = new Set(BOMB_SQUARES);
     }
 
     getBoard = () => {
@@ -347,6 +349,12 @@ class GameBoard {
 
             }
 
+            // CHECK BOMB: if current square has an active bomb, trigger it!
+            const currentPos = this.playerPositions[playerName];
+            if (this.activeBombs.has(currentPos)) {
+                await this.triggerBomb(currentPos, playerName);
+            }
+
             let msg = `[${new Date().toLocaleTimeString()}] Player rolled a ${diceRoll}. Current Position: ${this.playerPositions[playerName]} <br/>`;
             logPara.innerHTML += msg;
 
@@ -394,7 +402,7 @@ class GameBoard {
 
 
         if (this.playerPositions[playerName] == 0) {
-            player.getPiece().style.bottom = "-70px";
+            player.updatePosition(); // let player.js handle position=0 placement
         }
 
 
@@ -417,23 +425,28 @@ class GameBoard {
 
 
     showMenu = () => {
-        document.querySelector("#menu").style.display = "block";
+        document.querySelector("#menu").style.display = "flex";
         document.querySelector("#playground").style.display = "none";
         this.setDiceButtonsDisabled(true);
     }
 
     playGround = () => {
         document.querySelector("#menu").style.display = "none";
-        document.querySelector("#playground").style.display = "block";
+        document.querySelector("#playground").style.display = "flex";
         this.setDiceButtonsDisabled(false);
         this.selectedPlayerName = null;
         this.moveHistory = [];
         this.setUndoDisabled(true);
 
         this.storeGameSnapshot();
-
         this.updatePlayers();
         this.updateTurn();
+
+        // Wait for layout then resize + bombs
+        requestAnimationFrame(() => {
+            if (window.windowResizeFn) window.windowResizeFn();
+            setTimeout(() => this.initializeBombs(), 80);
+        });
     }
 
     playAudio = (src) => {
@@ -551,6 +564,91 @@ class GameBoard {
         this.currentPlayerTurn = playerIndex >= 0 ? playerIndex : 0;
     }
 
+    // --- BOMB SYSTEM ---
+
+    /**
+     * Calculate pixel position (left, bottom) of a given tile on the board.
+     * Returns { left, bottom, width, height } in pixels.
+     */
+    getTilePosition = (tileNumber) => {
+        const boardEl = document.getElementById("gameBoard");
+        const B_width = boardEl.clientWidth;
+        const B_height = boardEl.clientHeight;
+
+        const tile_width = (B_width * GRID_WIDTH_PCT) / TILES_PER_ROW;
+        const tile_height = (B_height * GRID_HEIGHT_PCT) / TILES_PER_ROW;
+        const left_offset = B_width * GRID_MARGIN_LEFT_PCT;
+        const bottom_offset = B_height * GRID_MARGIN_BOTTOM_PCT;
+
+        const rowIndex = Math.floor((tileNumber - 1) / TILES_PER_ROW);
+        const colIndex = (tileNumber - 1) % TILES_PER_ROW;
+        const tile_x = left_offset + (rowIndex % 2 === 0 ? colIndex : (TILES_PER_ROW - 1 - colIndex)) * tile_width;
+        const tile_y = bottom_offset + rowIndex * tile_height;
+
+        return { left: tile_x, bottom: tile_y, width: tile_width, height: tile_height };
+    }
+
+    /**
+     * Render Bom.png images on all currently active bomb squares.
+     */
+    initializeBombs = () => {
+        const boardEl = document.getElementById("gameBoard");
+
+        // Remove existing bomb tiles
+        boardEl.querySelectorAll(".bomb-tile").forEach(el => el.remove());
+
+        this.activeBombs.forEach(square => {
+            const pos = this.getTilePosition(square);
+            const bombEl = document.createElement("div");
+            bombEl.classList.add("bomb-tile");
+            bombEl.dataset.square = square;
+            bombEl.style.left = `${Math.round(pos.left)}px`;
+            bombEl.style.bottom = `${Math.round(pos.bottom)}px`;
+            bombEl.style.width = `${Math.round(pos.width)}px`;
+            bombEl.style.height = `${Math.round(pos.height)}px`;
+            boardEl.appendChild(bombEl);
+        });
+    }
+
+    /**
+     * Trigger bomb explosion: show Boom.gif, remove bomb, show modal.
+     */
+    triggerBomb = async (square, playerName) => {
+        const boardEl = document.getElementById("gameBoard");
+        const pos = this.getTilePosition(square);
+
+        // Remove the Bom.png element
+        const bombEl = boardEl.querySelector(`.bomb-tile[data-square="${square}"]`);
+        if (bombEl) bombEl.remove();
+
+        // Remove from active set
+        this.activeBombs.delete(square);
+
+        // Show Boom.gif on that tile
+        const boomEl = document.createElement("div");
+        boomEl.classList.add("boom-tile");
+        boomEl.style.left = `${Math.round(pos.left - pos.width * 0.25)}px`;
+        boomEl.style.bottom = `${Math.round(pos.bottom - pos.height * 0.25)}px`;
+        boomEl.style.width = `${Math.round(pos.width * 1.5)}px`;
+        boomEl.style.height = `${Math.round(pos.height * 1.5)}px`;
+        boardEl.appendChild(boomEl);
+
+        // Wait for boom animation (1.5s)
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        // Remove boom
+        boomEl.remove();
+
+        // Show bomb modal popup
+        const modal = document.getElementById("bombModal");
+        const msg = document.getElementById("bombModalMessage");
+        if (modal && msg) {
+            msg.textContent = `Pemain "${playerName}" menginjak bom di kotak ${square}! Soal bom sekarang terbuka!`;
+            modal.style.display = "flex";
+        }
+    }
+    // --- END BOMB SYSTEM ---
+
     selectPlayerByPiece = (playerName) => {
         const activePlayers = this.getActivePlayerNames();
         if (!activePlayers.includes(playerName)) {
@@ -625,6 +723,14 @@ class GameBoard {
         this.setUndoDisabled(true);
         this.updateTurn();
         this.updatePlayers();
+
+        // Reset bombs
+        this.activeBombs = new Set(BOMB_SQUARES);
+        const boardEl = document.getElementById("gameBoard");
+        if (boardEl) {
+            boardEl.querySelectorAll(".bomb-tile, .boom-tile").forEach(el => el.remove());
+        }
+
         this.showMenu();
     }
 
@@ -702,7 +808,7 @@ class GameBoard {
         };
 
 
-        const board = new Board(boardElement, GAME_BOARD_BG_02, SNAKES_AND_LADDERS_03);
+        const board = new Board(boardElement, GAME_BOARD_BG_03, SNAKES_AND_LADDERS_03);
 
         this.board = board;
         this.players = players;
@@ -773,24 +879,50 @@ class GameBoard {
             // this.playerRoll();
         });
 
-        const windowResize = () => {
+        // Expose resize fn so playGround() can call it
+        const windowResizeFn = () => {
             const boardWrapper = document.querySelector("#boardWrapper");
+            const gameBoard   = document.querySelector("#gameBoard");
+            const controlsBar = document.querySelector("#gameControlsBar");
 
-            if (boardWrapper) {
-                console.log(boardWrapper);
-                this.scale = boardWrapper.clientWidth / BOARD_SIZE;
-                console.log(this.scale);
-                console.log(this.playerPositions);
-                for (let player in this.players) {
-                    this.players[player].setScale(this.scale);
-                }
+            if (!boardWrapper || !gameBoard) return;
 
-                this.updatePieceStacking();
+            // Available height = viewport - controls bar height
+            const controlsH = controlsBar ? controlsBar.offsetHeight : 70;
+            const availW = window.innerWidth;
+            const availH = window.innerHeight - controlsH;
+
+            // Fit 16:9 board into available space
+            let boardW = availW;
+            let boardH = Math.round(boardW * 9 / 16);
+
+            if (boardH > availH) {
+                boardH = availH;
+                boardW = Math.round(boardH * 16 / 9);
             }
-        }
 
-        window.addEventListener("resize", windowResize);
-        windowResize();
+            // Apply size to boardWrapper so it centers correctly
+            boardWrapper.style.width  = boardW + "px";
+            boardWrapper.style.height = boardH + "px";
+
+            // scale = ratio of displayed board width to nominal 1920
+            this.scale = boardW / BOARD_SIZE;
+
+            for (let player in this.players) {
+                this.players[player].setScale(this.scale);
+            }
+            this.updatePieceStacking();
+
+            if (document.querySelector("#playground").style.display === "flex") {
+                this.initializeBombs();
+            }
+        };
+
+        // Store reference so playGround can call it
+        window.windowResizeFn = windowResizeFn;
+
+        window.addEventListener("resize", windowResizeFn);
+        windowResizeFn();
 
         this.updateTurn();
     }
