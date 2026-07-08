@@ -265,6 +265,7 @@ class GameBoard {
             for (let playerName in this.players) {
                 let player = this.players[playerName];
                 player.getButton().disabled = true;
+                player.getButton().classList.remove("active-player");
             }
 
             for (let playerName in this.players) {
@@ -272,16 +273,19 @@ class GameBoard {
                 player.getPiece().classList.remove("active");
             }
 
+            let activeName;
             if (this.numberOfPlayers === 1 && this.currentPlayerTurn === 1) {
-                this.players["computer"].getButton().disabled = false;
-                this.players["computer"].getPiece().classList.add("active");
+                activeName = "computer";
             } else {
-                this.players[this.playerNames[this.currentPlayerTurn]].getButton().disabled = false;
-                this.players[this.playerNames[this.currentPlayerTurn]].getPiece().classList.add("active");
+                activeName = this.playerNames[this.currentPlayerTurn];
+            }
+
+            if (activeName && this.players[activeName]) {
+                this.players[activeName].getButton().disabled = false;
+                this.players[activeName].getButton().classList.add("active-player");
+                this.players[activeName].getPiece().classList.add("active");
             }
         }
-
-
     }
 
     playGame = async (player, forcedDiceRoll = null) => {
@@ -696,13 +700,13 @@ class GameBoard {
 
 
     resetGame = () => {
-        this.playerPositions = { red: 1, green: 1, blue: 1, yellow: 1, computer: 1 };
+        this.playerPositions = { red: 0, green: 0, blue: 0, yellow: 0, computer: 0 };
         this.playerScores = {
-            red: { score: 1 },
-            green: { score: 1 },
-            blue: { score: 1 },
-            yellow: { score: 1 },
-            computer: { score: 1 }
+            red: { score: 0 },
+            green: { score: 0 },
+            blue: { score: 0 },
+            yellow: { score: 0 },
+            computer: { score: 0 }
         };
         this.updateScoreboard();
         localStorage.removeItem("gameState");
@@ -800,11 +804,11 @@ class GameBoard {
         };
 
         let playerPositions = {
-            red: 1,
-            green: 1,
-            blue: 1,
-            yellow: 1,
-            computer: 1,
+            red: 0,
+            green: 0,
+            blue: 0,
+            yellow: 0,
+            computer: 0,
         };
 
 
@@ -880,19 +884,15 @@ class GameBoard {
         });
 
         // Expose resize fn so playGround() can call it
+        // Controls are now INSIDE boardWrapper (overlay), so size boardWrapper to fill full viewport
         const windowResizeFn = () => {
             const boardWrapper = document.querySelector("#boardWrapper");
-            const gameBoard   = document.querySelector("#gameBoard");
-            const controlsBar = document.querySelector("#gameControlsBar");
+            if (!boardWrapper) return;
 
-            if (!boardWrapper || !gameBoard) return;
-
-            // Available height = viewport - controls bar height
-            const controlsH = controlsBar ? controlsBar.offsetHeight : 70;
             const availW = window.innerWidth;
-            const availH = window.innerHeight - controlsH;
+            const availH = window.innerHeight;
 
-            // Fit 16:9 board into available space
+            // Fit 16:9 into full viewport
             let boardW = availW;
             let boardH = Math.round(boardW * 9 / 16);
 
@@ -901,11 +901,10 @@ class GameBoard {
                 boardW = Math.round(boardH * 16 / 9);
             }
 
-            // Apply size to boardWrapper so it centers correctly
             boardWrapper.style.width  = boardW + "px";
             boardWrapper.style.height = boardH + "px";
 
-            // scale = ratio of displayed board width to nominal 1920
+            // scale = actual width / nominal image width (1920)
             this.scale = boardW / BOARD_SIZE;
 
             for (let player in this.players) {
