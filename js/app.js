@@ -297,33 +297,34 @@ class GameBoard {
             await new Promise(resolve => setTimeout(resolve, 150));
         }
 
-        if (finalPosition <= 36) {
-            if (player.getPosition() === 0) {
-                // First: spawn at tile 1 (visual entry point)
-                this.playerPositions[playerName] = 1;
-                player.setPosition(1);
+        // Clamp finalPosition to 36: jika melebihi, bidak tetap berjalan hingga kotak 36 dan menang
+        const clampedFinal = Math.min(finalPosition, 36);
+
+        if (player.getPosition() === 0) {
+            // First: spawn at tile 1 (visual entry point)
+            this.playerPositions[playerName] = 1;
+            player.setPosition(1);
+            player.updatePosition();
+            this.updatePieceStacking();
+            this.playAudio("./audio/move.mp3");
+            await new Promise(resolve => setTimeout(resolve, 150));
+            // Then: step forward tile by tile up to clampedFinal
+            for (let i = 2; i <= clampedFinal; i++) {
+                this.playerPositions[playerName] = i;
+                player.setPosition(i);
                 player.updatePosition();
                 this.updatePieceStacking();
                 this.playAudio("./audio/move.mp3");
                 await new Promise(resolve => setTimeout(resolve, 150));
-                // Then: step forward the remaining (diceRoll - 1) tiles
-                for (let i = 2; i <= diceRoll; i++) {
-                    this.playerPositions[playerName] = i;
-                    player.setPosition(i);
-                    player.updatePosition();
-                    this.updatePieceStacking();
-                    this.playAudio("./audio/move.mp3");
-                    await new Promise(resolve => setTimeout(resolve, 150));
-                }
-            } else {
-                for (let i = this.playerPositions[playerName]; i <= finalPosition; i++) {
-                    this.playerPositions[playerName] = i;
-                    player.setPosition(this.playerPositions[playerName]);
-                    player.updatePosition();
-                    this.updatePieceStacking();
-                    this.playAudio("./audio/move.mp3");
-                    await new Promise(resolve => setTimeout(resolve, 150));
-                }
+            }
+        } else {
+            for (let i = this.playerPositions[playerName]; i <= clampedFinal; i++) {
+                this.playerPositions[playerName] = i;
+                player.setPosition(this.playerPositions[playerName]);
+                player.updatePosition();
+                this.updatePieceStacking();
+                this.playAudio("./audio/move.mp3");
+                await new Promise(resolve => setTimeout(resolve, 150));
             }
         }
 

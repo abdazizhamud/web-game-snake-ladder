@@ -55,21 +55,21 @@ class Player {
 
     setScale(scale, boardW = null, boardH = null) {
         this.scale = scale;
-        
+
         const B_width = boardW || (scale * BOARD_SIZE);
         const B_height = boardH || (B_width * 0.5625); // 1080/1920
-        
+
         // Calculate grid tile dimensions
         const tile_width = (B_width * GRID_WIDTH_PCT) / TILES_PER_ROW;
         const tile_height = (B_height * GRID_HEIGHT_PCT) / TILES_PER_ROW;
-        
+
         this.tileWidth = tile_width;
         this.tileHeight = tile_height;
         this.boardSize = B_width;
         this.boardHeight = B_height;
 
-        // Set player size to 80% of smallest tile dimension (a bit smaller than tile)
-        const playerSize = Math.round(Math.min(tile_width, tile_height) * 0.80);
+        // Set player size to 100% of smallest tile dimension (full tile size)
+        const playerSize = Math.round(Math.min(tile_width, tile_height) * 1.4);
         this.piece.style.width = `${playerSize}px`;
         this.piece.style.height = `${playerSize}px`;
 
@@ -100,12 +100,12 @@ class Player {
         // Check if the position indicator is 0 (haven't entered board yet) — hide the piece
         if (this.position === 0) {
             // Move far off-screen so it's invisible (no pre-board floating piece)
-            this.piece.style.left   = `-9999px`;
+            this.piece.style.left = `-9999px`;
             this.piece.style.bottom = `-9999px`;
         } else {
             const rowIndex = Math.floor((this.position - 1) / TILES_PER_ROW);
             const colIndex = (this.position - 1) % TILES_PER_ROW;
-            
+
             // Calculate base tile coordinates (accounting for alternate snaking directions)
             const tile_x = left_offset + (rowIndex % 2 === 0 ? colIndex : (TILES_PER_ROW - 1 - colIndex)) * tile_width;
             const tile_y = bottom_offset + rowIndex * tile_height;
@@ -115,9 +115,9 @@ class Player {
             const center_x = tile_x + (tile_width - playerSize) / 2;
             const center_y = tile_y + (tile_height - playerSize) / 2;
 
-            this.piece.style.left   = `${Math.round(center_x)}px`;
+            this.piece.style.left = `${Math.round(center_x)}px`;
             this.piece.style.bottom = `${Math.round(center_y)}px`;
         }
     }
-    
+
 }
