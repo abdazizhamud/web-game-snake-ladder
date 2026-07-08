@@ -260,32 +260,24 @@ class GameBoard {
     }
 
     updateTurn = async () => {
-
-        if (this.podium.includes(this.playerNames[this.currentPlayerTurn]) === false) {
-            for (let playerName in this.players) {
-                let player = this.players[playerName];
-                player.getButton().disabled = true;
-            }
-
-            for (let playerName in this.players) {
-                let player = this.players[playerName];
-                player.getPiece().classList.remove("active");
-            }
-
-            if (this.numberOfPlayers === 1 && this.currentPlayerTurn === 1) {
-                this.players["computer"].getButton().disabled = false;
-                this.players["computer"].getPiece().classList.add("active");
-            } else {
-                this.players[this.playerNames[this.currentPlayerTurn]].getButton().disabled = false;
-                this.players[this.playerNames[this.currentPlayerTurn]].getPiece().classList.add("active");
-            }
+        // Remove active highlight from all pieces
+        for (let playerName in this.players) {
+            this.players[playerName].getPiece().classList.remove("active");
+            this.players[playerName].getButton().classList.remove("active-player");
         }
 
+        // Highlight the currently selected player
+        const activeName = (this.numberOfPlayers === 1 && this.currentPlayerTurn === 1)
+            ? "computer"
+            : this.playerNames[this.currentPlayerTurn];
 
+        if (this.players[activeName]) {
+            this.players[activeName].getPiece().classList.add("active");
+            this.players[activeName].getButton().classList.add("active-player");
+        }
     }
 
     playGame = async (player, forcedDiceRoll = null) => {
-        player.getButton().disabled = true;
         player.getPiece().style.zIndex = "99";
         this.setDiceButtonsDisabled(true);
         this.setUndoDisabled(true);
@@ -296,7 +288,6 @@ class GameBoard {
         // Roll the dice
         this.playAudio("./audio/roll.mp3");
         let diceRoll = forcedDiceRoll ?? this.rollDice();
-        document.getElementById("dice").style.backgroundPositionX = `${this.diceImagePositions[diceRoll - 1]}px`;
 
         await new Promise(resolve => setTimeout(resolve, 500));
         let finalPosition = this.playerPositions[playerName] + diceRoll;
@@ -308,9 +299,17 @@ class GameBoard {
 
         if (finalPosition <= 36) {
             if (player.getPosition() === 0) {
-                if (diceRoll === 6) {
-                    this.playerPositions[playerName] = 1;
-                    player.setPosition(1);
+                // First: spawn at tile 1 (visual entry point)
+                this.playerPositions[playerName] = 1;
+                player.setPosition(1);
+                player.updatePosition();
+                this.updatePieceStacking();
+                this.playAudio("./audio/move.mp3");
+                await new Promise(resolve => setTimeout(resolve, 150));
+                // Then: step forward the remaining (diceRoll - 1) tiles
+                for (let i = 2; i <= diceRoll; i++) {
+                    this.playerPositions[playerName] = i;
+                    player.setPosition(i);
                     player.updatePosition();
                     this.updatePieceStacking();
                     this.playAudio("./audio/move.mp3");
@@ -325,7 +324,6 @@ class GameBoard {
                     this.playAudio("./audio/move.mp3");
                     await new Promise(resolve => setTimeout(resolve, 150));
                 }
-
             }
         }
 
@@ -408,7 +406,7 @@ class GameBoard {
 
 
 
-        player.getButton().disabled = false;
+        // (bidak buttons are never disabled — they are always selectable)
         player.getPiece().style.zIndex = "1";
         this.setDiceButtonsDisabled(false);
         this.setUndoDisabled(this.moveHistory.length === 0);
@@ -726,20 +724,20 @@ class GameBoard {
 
 
     resetGame = () => {
-        this.playerPositions = { red: 1, green: 1, blue: 1, yellow: 1, computer: 1 };
+        this.playerPositions = { red: 0, green: 0, blue: 0, yellow: 0, computer: 0 };
         this.playerScores = {
-            red: { score: 1 },
-            green: { score: 1 },
-            blue: { score: 1 },
-            yellow: { score: 1 },
-            computer: { score: 1 }
+            red: { score: 0 },
+            green: { score: 0 },
+            blue: { score: 0 },
+            yellow: { score: 0 },
+            computer: { score: 0 }
         };
         this.updateScoreboard();
         localStorage.removeItem("gameState");
 
         for (const playerName in this.players) {
             let player = this.players[playerName];
-            player.setPosition(1);
+            player.setPosition(0);
             player.updatePosition();
         }
 
@@ -806,11 +804,11 @@ class GameBoard {
         const playerYellowBtn = document.getElementById("yellow"); /* Yellow Play Button */
         const computerPlayerBtn = document.getElementById("computer"); /* Computer Play Button */
 
-        const redPlayer = new Player(0, "red", redPlayerPiece, redPlayerBtn, 1);
-        const greenPlayer = new Player(1, "green", greenPlayerPiece, greenPlayerBtn, 1);
-        const bluePlayer = new Player(2, "blue", bluePlayerPiece, playerBlueBtn, 1);
-        const yellowPlayer = new Player(3, "yellow", yellowPlayerPiece, playerYellowBtn, 1);
-        const computerPlayer = new Player(4, "computer", computerPlayerPiece, computerPlayerBtn, 1);
+        const redPlayer = new Player(0, "red", redPlayerPiece, redPlayerBtn, 0);
+        const greenPlayer = new Player(1, "green", greenPlayerPiece, greenPlayerBtn, 0);
+        const bluePlayer = new Player(2, "blue", bluePlayerPiece, playerBlueBtn, 0);
+        const yellowPlayer = new Player(3, "yellow", yellowPlayerPiece, playerYellowBtn, 0);
+        const computerPlayer = new Player(4, "computer", computerPlayerPiece, computerPlayerBtn, 0);
 
         /* Menu Buttons */
         const playComputerBtn = document.querySelector("#playComputerBtn");
@@ -830,11 +828,11 @@ class GameBoard {
         };
 
         let playerPositions = {
-            red: 1,
-            green: 1,
-            blue: 1,
-            yellow: 1,
-            computer: 1,
+            red: 0,
+            green: 0,
+            blue: 0,
+            yellow: 0,
+            computer: 0,
         };
 
 

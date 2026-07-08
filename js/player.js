@@ -97,14 +97,11 @@ class Player {
         const left_offset = B_width * GRID_MARGIN_LEFT_PCT;
         const bottom_offset = B_height * GRID_MARGIN_BOTTOM_PCT;
 
-        // Check if the position indicator is 0 (haven't entered board yet)
+        // Check if the position indicator is 0 (haven't entered board yet) — hide the piece
         if (this.position === 0) {
-            // Place them inside the board, near the bottom-left (Start area), slightly staggered
-            const playerSize = Number.parseInt(this.piece.style.width || "0", 10) || Math.round(Math.min(tile_width, tile_height) * 0.80);
-            const startX = left_offset + this.index * (playerSize * 0.5);
-            const startY = bottom_offset - playerSize * 0.3;
-            this.piece.style.left   = `${Math.round(startX)}px`;
-            this.piece.style.bottom = `${Math.round(startY)}px`;
+            // Move far off-screen so it's invisible (no pre-board floating piece)
+            this.piece.style.left   = `-9999px`;
+            this.piece.style.bottom = `-9999px`;
         } else {
             const rowIndex = Math.floor((this.position - 1) / TILES_PER_ROW);
             const colIndex = (this.position - 1) % TILES_PER_ROW;
